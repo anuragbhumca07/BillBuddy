@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "BillBuddy",
+    "slug": "BillBuddy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#4F46E5"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.BillBuddy.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#4F46E5"
+      },
+      "package": "com.BillBuddy.app"
+    },
+    "plugins": [
+      "expo-notifications",
+      "expo-camera",
+      ["expo-image-picker", { "photosPermission": "Allow BillBuddy to access your photos for receipt uploads." }]
+    ]
+  }
+}
