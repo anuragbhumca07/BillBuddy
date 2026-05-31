@@ -108,13 +108,18 @@ export const DEMO_EXPENSES = [
 ];
 
 export const DEMO_BALANCES = {
-  youOwe: 127.36,   // Alex owes others
-  youAreOwed: 889.66, // others owe Alex
+  youOwe: 127.36,
+  youAreOwed: 889.66,
   debts: [
-    { from: DEMO_USER, to: MEMBER_2, amount: 67.35, description: 'Grocery Run + Cleaning' },
-    { from: DEMO_USER, to: MEMBER_3, amount: 60.01, description: 'Internet & Cable' },
-    { from: MEMBER_2, to: DEMO_USER, amount: 844.83, description: 'Rent + Electricity' },
-    { from: MEMBER_3, to: DEMO_USER, amount: 44.83, description: 'Electricity Bill' },
+    { id: 'debt-1', from: DEMO_USER.id, to: MEMBER_2.id, fromUser: DEMO_USER, toUser: MEMBER_2, amount: 67.35, description: 'Grocery Run + Cleaning' },
+    { id: 'debt-2', from: DEMO_USER.id, to: MEMBER_3.id, fromUser: DEMO_USER, toUser: MEMBER_3, amount: 60.01, description: 'Internet & Cable' },
+    { id: 'debt-3', from: MEMBER_2.id, to: DEMO_USER.id, fromUser: MEMBER_2, toUser: DEMO_USER, amount: 844.83, description: 'Rent + Electricity' },
+    { id: 'debt-4', from: MEMBER_3.id, to: DEMO_USER.id, fromUser: MEMBER_3, toUser: DEMO_USER, amount: 44.83, description: 'Electricity Bill' },
+  ],
+  memberBalances: [
+    { user: DEMO_USER, net: 762.30 },
+    { user: MEMBER_2, net: -777.48 },
+    { user: MEMBER_3, net: -15.18 },
   ],
 };
 

@@ -36,6 +36,11 @@ export const houseService = {
     return response.data.rule || response.data;
   },
 
+  async updateRule(ruleId, data) {
+    const response = await api.put(`/rules/${ruleId}`, data);
+    return response.data.rule || response.data;
+  },
+
   async deleteRule(ruleId) {
     const response = await api.delete(`/rules/${ruleId}`);
     return response.data;

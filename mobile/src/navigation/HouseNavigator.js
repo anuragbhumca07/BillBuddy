@@ -4,10 +4,12 @@ import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import TabNavigator from './TabNavigator';
 import AddExpenseScreen from '../screens/expenses/AddExpenseScreen';
+import EditExpenseScreen from '../screens/expenses/EditExpenseScreen';
 import ExpenseDetailScreen from '../screens/expenses/ExpenseDetailScreen';
 import BalancesScreen from '../screens/expenses/BalancesScreen';
 import SettleUpScreen from '../screens/expenses/SettleUpScreen';
 import AddChoreScreen from '../screens/chores/AddChoreScreen';
+import EditChoreScreen from '../screens/chores/EditChoreScreen';
 import ChoreDetailScreen from '../screens/chores/ChoreDetailScreen';
 import ChoreHistoryScreen from '../screens/chores/ChoreHistoryScreen';
 import AddAnnouncementScreen from '../screens/announcements/AddAnnouncementScreen';
@@ -41,10 +43,12 @@ const HouseNavigator = () => (
   >
     <Stack.Screen name="Tabs"             component={TabNavigator}          options={{ headerShown: false }} />
     <Stack.Screen name="AddExpense"       component={AddExpenseScreen}      options={{ title: 'Add Expense' }} />
+    <Stack.Screen name="EditExpense"      component={EditExpenseScreen}     options={{ title: 'Edit Expense' }} />
     <Stack.Screen name="ExpenseDetail"    component={ExpenseDetailScreen}   options={{ title: 'Expense Details' }} />
     <Stack.Screen name="Balances"         component={BalancesScreen}        options={{ title: 'Balances' }} />
     <Stack.Screen name="SettleUp"         component={SettleUpScreen}        options={{ title: 'Settle Up' }} />
     <Stack.Screen name="AddChore"         component={AddChoreScreen}        options={{ title: 'Add Chore' }} />
+    <Stack.Screen name="EditChore"        component={EditChoreScreen}       options={{ title: 'Edit Chore' }} />
     <Stack.Screen name="ChoreDetail"      component={ChoreDetailScreen}     options={{ title: 'Chore Details' }} />
     <Stack.Screen name="ChoreHistory"     component={ChoreHistoryScreen}    options={{ title: 'Chore History' }} />
     <Stack.Screen name="AddAnnouncement"  component={AddAnnouncementScreen} options={{ title: 'New Announcement' }} />

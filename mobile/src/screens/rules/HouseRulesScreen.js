@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   fetchRules,
   addRule,
+  updateRule,
   deleteRule,
   selectRules,
   selectHouseLoading,
@@ -40,6 +41,9 @@ const HouseRulesScreen = ({ navigation }) => {
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [newRuleText, setNewRuleText] = useState('');
   const [addingRule, setAddingRule] = useState(false);
+  const [editingRule, setEditingRule] = useState(null);
+  const [editRuleText, setEditRuleText] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const isAdmin = house?.members?.find(
     (m) => (m.user?.id === user?.id || m.user === user?.id) && m.role === 'admin'
@@ -69,6 +73,25 @@ const HouseRulesScreen = ({ navigation }) => {
     }
   };
 
+  const handleEditRule = (rule) => {
+    setEditingRule(rule);
+    setEditRuleText(rule.text || rule);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editRuleText.trim()) return;
+    setSavingEdit(true);
+    try {
+      await dispatch(updateRule({ ruleId: editingRule.id, data: { text: editRuleText.trim() } })).unwrap();
+      setEditingRule(null);
+      setEditRuleText('');
+    } catch (error) {
+      Alert.alert('Error', error || 'Failed to update rule.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const handleDeleteRule = (ruleId) => {
     Alert.alert('Delete Rule', 'Remove this house rule?', [
       { text: 'Cancel', style: 'cancel' },
@@ -87,13 +110,22 @@ const HouseRulesScreen = ({ navigation }) => {
       </View>
       <Text style={styles.ruleText} numberOfLines={4}>{item.text || item}</Text>
       {isAdmin && (
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDeleteRule(item.id)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="trash-outline" size={18} color={colors.danger} />
-        </TouchableOpacity>
+        <View style={styles.ruleActions}>
+          <TouchableOpacity
+            style={styles.ruleActionBtn}
+            onPress={() => handleEditRule(item)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="pencil-outline" size={16} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.ruleActionBtn}
+            onPress={() => handleDeleteRule(item.id)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="trash-outline" size={16} color={colors.danger} />
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
@@ -147,6 +179,57 @@ const HouseRulesScreen = ({ navigation }) => {
           customSize={56}
         />
       )}
+
+      {/* Edit Rule Modal */}
+      <Modal
+        visible={!!editingRule}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditingRule(null)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Rule</Text>
+              <TouchableOpacity onPress={() => setEditingRule(null)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <RNTextInput
+              style={styles.ruleInput}
+              value={editRuleText}
+              onChangeText={setEditRuleText}
+              multiline
+              numberOfLines={4}
+              autoFocus
+              placeholderTextColor={colors.textSecondary}
+            />
+            <View style={styles.modalButtons}>
+              <Button
+                mode="outlined"
+                onPress={() => setEditingRule(null)}
+                style={styles.modalCancelButton}
+                textColor={colors.textSecondary}
+              >
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleSaveEdit}
+                loading={savingEdit}
+                disabled={savingEdit || !editRuleText.trim()}
+                style={styles.modalAddButton}
+                buttonColor={colors.primary}
+              >
+                Save
+              </Button>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Add Rule Modal */}
       <Modal
@@ -269,6 +352,15 @@ const styles = StyleSheet.create({
   deleteButton: {
     padding: 4,
     marginLeft: 4,
+  },
+  ruleActions: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    marginLeft: 4,
+  },
+  ruleActionBtn: {
+    padding: 4,
   },
   fab: {
     position: 'absolute',

@@ -150,6 +150,25 @@ const DashboardScreen = ({ navigation }) => {
                 Owe {formatCurrency(balances.youOwe)} · Owed {formatCurrency(balances.youAreOwed)}
               </Text>
             )}
+            {/* Per-person breakdown */}
+            {balances.debts?.length > 0 && (
+              <View style={styles.balanceBreakdown}>
+                {balances.debts.slice(0, 3).map((d, i) => {
+                  const fromId = d.from?.id || d.from;
+                  const isYouOwe = fromId === user?.id;
+                  const name = isYouOwe ? (d.toUser?.name || 'Unknown') : (d.fromUser?.name || 'Unknown');
+                  return (
+                    <Text key={d.id || i} style={styles.balanceBreakdownRow}>
+                      {isYouOwe ? `→ Pay ${name}` : `← ${name} owes you`}{'  '}
+                      <Text style={{ fontWeight: '700' }}>{formatCurrency(d.amount)}</Text>
+                    </Text>
+                  );
+                })}
+                {balances.debts.length > 3 && (
+                  <Text style={styles.balanceBreakdownMore}>+{balances.debts.length - 3} more · Tap for details</Text>
+                )}
+              </View>
+            )}
           </View>
           <Ionicons
             name="chevron-forward"
@@ -417,6 +436,23 @@ const styles = StyleSheet.create({
   balanceDetail: {
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  balanceBreakdown: {
+    marginTop: 8,
+    gap: 3,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.08)',
+    paddingTop: 8,
+  },
+  balanceBreakdownRow: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  balanceBreakdownMore: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 2,
   },
   section: {
     marginHorizontal: 16,

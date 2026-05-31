@@ -53,6 +53,11 @@ export const expenseService = {
     return response.data;
   },
 
+  async getExpenseHistory(expenseId) {
+    const response = await api.get(`/expenses/${expenseId}/history`);
+    return response.data.history || response.data;
+  },
+
   async getMyExpenses() {
     const response = await api.get('/expenses', { params: { mine: true } });
     return response.data.expenses || response.data;

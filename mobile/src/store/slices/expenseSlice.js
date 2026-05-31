@@ -37,6 +37,30 @@ export const addExpense = createAsyncThunk(
   }
 );
 
+export const updateExpense = createAsyncThunk(
+  'expenses/updateExpense',
+  async ({ expenseId, data }, { rejectWithValue }) => {
+    try {
+      const result = await expenseService.updateExpense(expenseId, data);
+      return result;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update expense');
+    }
+  }
+);
+
+export const fetchExpenseHistory = createAsyncThunk(
+  'expenses/fetchExpenseHistory',
+  async (expenseId, { rejectWithValue }) => {
+    try {
+      const response = await expenseService.getExpenseHistory(expenseId);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch history');
+    }
+  }
+);
+
 export const deleteExpense = createAsyncThunk(
   'expenses/deleteExpense',
   async (expenseId, { rejectWithValue }) => {
@@ -79,6 +103,7 @@ const expenseSlice = createSlice({
     expenses: [],
     selectedExpense: null,
     balances: null,
+    expenseHistory: [],
     loading: false,
     error: null,
   },
@@ -116,6 +141,15 @@ const expenseSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      .addCase(updateExpense.fulfilled, (state, action) => {
+        const idx = state.expenses.findIndex(e => e.id === action.payload.id);
+        if (idx !== -1) state.expenses[idx] = action.payload;
+        if (state.selectedExpense?.id === action.payload.id) state.selectedExpense = action.payload;
+        state.loading = false;
+      })
+      .addCase(fetchExpenseHistory.fulfilled, (state, action) => {
+        state.expenseHistory = action.payload;
+      })
       .addCase(deleteExpense.fulfilled, (state, action) => {
         state.expenses = state.expenses.filter(e => e.id !== action.payload);
       })
@@ -146,5 +180,6 @@ export const selectExpenses = (state) => state.expenses.expenses;
 export const selectBalances = (state) => state.expenses.balances;
 export const selectExpenseLoading = (state) => state.expenses.loading;
 export const selectSelectedExpense = (state) => state.expenses.selectedExpense;
+export const selectExpenseHistory = (state) => state.expenses.expenseHistory;
 
 export default expenseSlice.reducer;

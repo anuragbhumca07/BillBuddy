@@ -85,6 +85,18 @@ export const addRule = createAsyncThunk(
   }
 );
 
+export const updateRule = createAsyncThunk(
+  'house/updateRule',
+  async ({ ruleId, data }, { rejectWithValue }) => {
+    try {
+      const result = await houseService.updateRule(ruleId, data);
+      return result;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update rule');
+    }
+  }
+);
+
 export const deleteRule = createAsyncThunk(
   'house/deleteRule',
   async (ruleId, { rejectWithValue }) => {
@@ -162,6 +174,10 @@ const houseSlice = createSlice({
       })
       .addCase(addRule.fulfilled, (state, action) => {
         state.rules.push(action.payload);
+      })
+      .addCase(updateRule.fulfilled, (state, action) => {
+        const idx = state.rules.findIndex(r => r.id === action.payload.id);
+        if (idx !== -1) state.rules[idx] = action.payload;
       })
       .addCase(deleteRule.fulfilled, (state, action) => {
         state.rules = state.rules.filter(r => r.id !== action.payload);

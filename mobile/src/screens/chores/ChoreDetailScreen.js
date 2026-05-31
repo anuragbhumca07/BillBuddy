@@ -47,6 +47,7 @@ const ChoreDetailScreen = ({ route, navigation }) => {
     chore?.assignedTo?.id === user?.id || chore?.assignedTo === user?.id;
 
   const canComplete = isAssignedToMe || isAdmin;
+  const canEdit = isAdmin || isAssignedToMe;
   const canDelete = isAdmin;
   const overdue = chore && isOverdue(chore.dueDate) && !chore.completed;
 
@@ -207,6 +208,18 @@ const ChoreDetailScreen = ({ route, navigation }) => {
           </Button>
         )}
 
+        {canEdit && !chore.completed && (
+          <Button
+            mode="outlined"
+            onPress={() => navigation.navigate('EditChore', { choreId })}
+            style={styles.editButton}
+            textColor={colors.primary}
+            icon="pencil-outline"
+          >
+            Edit Chore
+          </Button>
+        )}
+
         <TouchableOpacity
           style={styles.historyButton}
           onPress={() => navigation.navigate('ChoreHistory', { choreId })}
@@ -359,6 +372,10 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  editButton: {
+    borderRadius: 12,
+    borderColor: colors.primary,
   },
   historyButton: {
     flexDirection: 'row',

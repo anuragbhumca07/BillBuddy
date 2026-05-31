@@ -12,8 +12,10 @@ import {
   fetchMembers, removeMember, fetchHouse,
   selectMembers, selectHouseLoading, selectHouse,
 } from '../../store/slices/houseSlice';
+import { fetchBalances, selectBalances } from '../../store/slices/expenseSlice';
 import { selectUser } from '../../store/slices/authSlice';
 import { colors, shadows } from '../../utils/theme';
+import { formatCurrency } from '../../utils/formatters';
 import MemberAvatar from '../../components/MemberAvatar';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
@@ -32,6 +34,7 @@ const MembersScreen = ({ navigation }) => {
   const loading  = useSelector(selectHouseLoading);
   const user     = useSelector(selectUser);
   const house    = useSelector(selectHouse);
+  const balances = useSelector(selectBalances);
   const [refreshing, setRefreshing] = useState(false);
   const [groups, setGroups]         = useState([..._groups]);
   const [activeTab, setActiveTab]   = useState('Members');
@@ -48,8 +51,15 @@ const MembersScreen = ({ navigation }) => {
   const [groupDescription, setGroupDescription]   = useState('');
   const [selectedGroupMembers, setSelectedGroupMembers] = useState([]);
 
-  // ── Members: fall back to house.members ───────────────────────────────────
-  const members = reduxMembers.length > 0 ? reduxMembers : (house?.members || []);
+  // ── Members: fall back to house.members, sorted by outstanding balance ───────
+  const rawMembers = reduxMembers.length > 0 ? reduxMembers : (house?.members || []);
+  const members = [...rawMembers].sort((a, b) => {
+    const aId = a.user?.id || a.id;
+    const bId = b.user?.id || b.id;
+    const aNet = Math.abs(getMemberBalance(aId));
+    const bNet = Math.abs(getMemberBalance(bId));
+    return bNet - aNet;
+  });
 
   const isAdmin = members.find(
     m => (m.user?.id === user?.id || m.user === user?.id) && m.role === 'admin'
@@ -58,12 +68,26 @@ const MembersScreen = ({ navigation }) => {
   useEffect(() => {
     dispatch(fetchMembers());
     dispatch(fetchHouse());
+    dispatch(fetchBalances());
   }, [dispatch]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.allSettled([dispatch(fetchMembers()), dispatch(fetchHouse())]);
+    await Promise.allSettled([dispatch(fetchMembers()), dispatch(fetchHouse()), dispatch(fetchBalances())]);
     setRefreshing(false);
+  };
+
+  // Compute per-member net balance with current user
+  const getMemberBalance = (memberId) => {
+    if (!balances?.debts || !user?.id) return 0;
+    let net = 0;
+    balances.debts.forEach(d => {
+      const fromId = d.from?.id || d.from;
+      const toId = d.to?.id || d.to;
+      if (fromId === user.id && toId === memberId) net -= d.amount;
+      if (toId === user.id && fromId === memberId) net += d.amount;
+    });
+    return net;
   };
 
   // ── Invite ────────────────────────────────────────────────────────────────
@@ -139,6 +163,8 @@ const MembersScreen = ({ navigation }) => {
     const mu = item.user || item;
     const isMe = mu?.id === user?.id;
     const role = item.role || 'member';
+    const memberBalance = isMe ? null : getMemberBalance(mu?.id);
+    const hasBalance = !isMe && memberBalance !== 0;
     return (
       <View style={styles.memberCard}>
         <MemberAvatar user={mu} size={52} />
@@ -152,6 +178,13 @@ const MembersScreen = ({ navigation }) => {
             </View>
           </View>
           <Text style={styles.memberEmail}>{mu?.email || ''}</Text>
+          {hasBalance && (
+            <View style={[styles.balanceChip, memberBalance > 0 ? styles.balanceOwed : styles.balanceOwes]}>
+              <Text style={[styles.balanceChipText, memberBalance > 0 ? styles.balanceOwedText : styles.balanceOwesText]}>
+                {memberBalance > 0 ? `Owes you ${formatCurrency(memberBalance)}` : `You owe ${formatCurrency(Math.abs(memberBalance))}`}
+              </Text>
+            </View>
+          )}
         </View>
         <View style={styles.memberActions}>
           <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('DirectMessage', { member: mu })}>
@@ -394,6 +427,12 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 11, fontWeight: '600' },
   adminBadgeText: { color: colors.primary },
   memBadgeText: { color: colors.textSecondary },
+  balanceChip: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginTop: 2 },
+  balanceOwed: { backgroundColor: colors.success + '20' },
+  balanceOwes: { backgroundColor: colors.danger + '15' },
+  balanceChipText: { fontSize: 11, fontWeight: '600' },
+  balanceOwedText: { color: colors.success },
+  balanceOwesText: { color: colors.danger },
   memberActions: { flexDirection: 'row', gap: 8 },
   actionBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primary + '12', alignItems: 'center', justifyContent: 'center' },
   removeBtn: { backgroundColor: colors.danger + '12' },

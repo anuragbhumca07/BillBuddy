@@ -25,6 +25,10 @@ let _announcements = JSON.parse(JSON.stringify(DEMO_ANNOUNCEMENTS));
 let _rules = JSON.parse(JSON.stringify(DEMO_RULES));
 let _notifications = JSON.parse(JSON.stringify(DEMO_NOTIFICATIONS));
 let _history = JSON.parse(JSON.stringify(DEMO_CHORE_HISTORY));
+let _expenseHistory = [
+  { id: 'ehist-1', expenseId: 'exp-1', action: 'created', changedBy: DEMO_USER, timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), note: 'Expense created' },
+  { id: 'ehist-2', expenseId: 'exp-2', action: 'created', changedBy: DEMO_USER, timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), note: 'Expense created' },
+];
 
 let _idCounter = 1000;
 const nextId = (prefix = 'item') => `${prefix}-${++_idCounter}`;
@@ -111,11 +115,19 @@ export function handleMockRequest(config) {
     const rule = { id: nextId('rule'), text: body.text || body.title || body.description || '', house_id: 'house-1' };
     _rules.push(rule); return created({ rule });
   }
+  if (method === 'put' && /^\/rules\//.test(url)) {
+    const ruleId = url.split('/').pop(); const idx = _rules.findIndex(r => r.id === ruleId);
+    if (idx === -1) notFound(); _rules[idx] = { ..._rules[idx], text: body.text || _rules[idx].text }; return ok({ rule: _rules[idx] });
+  }
   if (method === 'delete' && /^\/rules\//.test(url)) {
     const ruleId = url.split('/').pop(); _rules = _rules.filter(r => r.id !== ruleId); return ok({ success: true });
   }
 
   // ── Expenses ───────────────────────────────────────────────────────────────
+  if (method === 'get' && /^\/expenses\/[^/]+\/history$/.test(url)) {
+    const id = url.split('/')[2];
+    return ok({ history: _expenseHistory.filter(h => h.expenseId === id) });
+  }
   if (method === 'get' && url.startsWith('/expenses') && !url.includes('/balances') && !url.includes('/settle') && !url.includes('/exp-')) {
     return ok({ expenses: _expenses });
   }
@@ -132,14 +144,24 @@ export function handleMockRequest(config) {
       splits: body.splits || [{ user: _user, user_id: _user.id, amount: parseFloat(body.amount) || 0, settled: true }],
       createdAt: new Date().toISOString(), note: body.note || '', house_id: 'house-1',
     };
-    _expenses.unshift(newExp); return created({ expense: newExp });
+    _expenses.unshift(newExp);
+    _expenseHistory.unshift({ id: nextId('ehist'), expenseId: newExp.id, action: 'created', changedBy: _user, timestamp: new Date().toISOString(), note: 'Expense created' });
+    return created({ expense: newExp });
   }
-  if (method === 'put' && /^\/expenses\//.test(url)) {
+  if (method === 'put' && /^\/expenses\/[^/]+$/.test(url)) {
     const id = url.split('/').pop(); const idx = _expenses.findIndex(e => e.id === id);
-    if (idx === -1) notFound(); _expenses[idx] = { ..._expenses[idx], ...body }; return ok({ expense: _expenses[idx] });
+    if (idx === -1) notFound();
+    const prev = { ..._expenses[idx] };
+    _expenses[idx] = { ..._expenses[idx], ...body };
+    _expenseHistory.unshift({ id: nextId('ehist'), expenseId: id, action: 'updated', changedBy: _user, timestamp: new Date().toISOString(), note: `Title: ${prev.title} → ${_expenses[idx].title}` });
+    return ok({ expense: _expenses[idx] });
   }
   if (method === 'delete' && /^\/expenses\/[^/]+$/.test(url)) {
-    const id = url.split('/').pop(); _expenses = _expenses.filter(e => e.id !== id); return ok({ success: true });
+    const id = url.split('/').pop();
+    const exp = _expenses.find(e => e.id === id);
+    _expenses = _expenses.filter(e => e.id !== id);
+    if (exp) _expenseHistory.unshift({ id: nextId('ehist'), expenseId: id, action: 'deleted', changedBy: _user, timestamp: new Date().toISOString(), note: `Deleted: ${exp.title}` });
+    return ok({ success: true });
   }
 
   // ── Balances ───────────────────────────────────────────────────────────────
@@ -173,7 +195,10 @@ export function handleMockRequest(config) {
   }
   if (method === 'put' && /^\/chores\/[^/]+$/.test(url)) {
     const id = url.split('/').pop(); const idx = _chores.findIndex(c => c.id === id);
-    if (idx === -1) notFound(); _chores[idx] = { ..._chores[idx], ...body }; return ok(_chores[idx]);
+    if (idx === -1) notFound();
+    _chores[idx] = { ..._chores[idx], ...body };
+    _history.unshift({ id: nextId('hist'), choreId: id, action: 'edited', title: _chores[idx].title, changedBy: _user, completedAt: new Date().toISOString() });
+    return ok(_chores[idx]);
   }
   if (method === 'delete' && /^\/chores\/[^/]+$/.test(url)) {
     const id = url.split('/').pop(); _chores = _chores.filter(c => c.id !== id); return ok({ success: true });

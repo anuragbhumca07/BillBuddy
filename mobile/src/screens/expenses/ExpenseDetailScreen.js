@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,15 +7,18 @@ import {
   Image,
   Alert,
   TouchableOpacity,
+  Modal,
 } from 'react-native';
 import { Button } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import {
   fetchExpenseDetail,
+  fetchExpenseHistory,
   deleteExpense,
   selectSelectedExpense,
   selectExpenseLoading,
+  selectExpenseHistory,
 } from '../../store/slices/expenseSlice';
 import { selectUser } from '../../store/slices/authSlice';
 import { selectHouse } from '../../store/slices/houseSlice';
@@ -30,19 +33,23 @@ const ExpenseDetailScreen = ({ route, navigation }) => {
   const { expenseId } = route.params || {};
   const expense = useSelector(selectSelectedExpense);
   const loading = useSelector(selectExpenseLoading);
+  const expenseHistory = useSelector(selectExpenseHistory);
   const user = useSelector(selectUser);
   const house = useSelector(selectHouse);
+  const [showHistory, setShowHistory] = useState(false);
 
   const isAdmin = house?.members?.find(
     (m) => (m.user?.id === user?.id || m.user === user?.id) && m.role === 'admin'
   );
   const isPayer =
     expense?.paidBy?.id === user?.id || expense?.paidBy === user?.id;
+  const canEdit = isAdmin || isPayer;
   const canDelete = isAdmin || isPayer;
 
   useEffect(() => {
     if (expenseId) {
       dispatch(fetchExpenseDetail(expenseId));
+      dispatch(fetchExpenseHistory(expenseId));
     }
   }, [expenseId, dispatch]);
 
@@ -191,6 +198,23 @@ const ExpenseDetailScreen = ({ route, navigation }) => {
         >
           Settle Up
         </Button>
+        {canEdit && (
+          <Button
+            mode="outlined"
+            onPress={() => navigation.navigate('EditExpense', { expenseId })}
+            style={styles.editButton}
+            textColor={colors.primary}
+            icon="pencil-outline"
+          >
+            Edit
+          </Button>
+        )}
+      </View>
+      <View style={styles.actionsRow}>
+        <TouchableOpacity style={styles.historyBtn} onPress={() => setShowHistory(true)}>
+          <Ionicons name="time-outline" size={18} color={colors.primary} />
+          <Text style={styles.historyBtnText}>View Change History</Text>
+        </TouchableOpacity>
         {canDelete && (
           <Button
             mode="outlined"
@@ -203,6 +227,34 @@ const ExpenseDetailScreen = ({ route, navigation }) => {
           </Button>
         )}
       </View>
+
+      {/* History Modal */}
+      <Modal visible={showHistory} transparent animationType="slide" onRequestClose={() => setShowHistory(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Change History</Text>
+              <TouchableOpacity onPress={() => setShowHistory(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            {expenseHistory.length === 0 ? (
+              <Text style={styles.noHistory}>No history recorded yet.</Text>
+            ) : (
+              expenseHistory.map((h, i) => (
+                <View key={h.id || i} style={styles.historyItem}>
+                  <View style={[styles.historyDot, { backgroundColor: h.action === 'deleted' ? colors.danger : h.action === 'updated' ? colors.warning : colors.success }]} />
+                  <View style={styles.historyInfo}>
+                    <Text style={styles.historyAction}>{h.action === 'created' ? 'Created' : h.action === 'updated' ? 'Edited' : 'Deleted'} by {h.changedBy?.name || 'Unknown'}</Text>
+                    <Text style={styles.historyNote}>{h.note}</Text>
+                    <Text style={styles.historyTime}>{new Date(h.timestamp).toLocaleString()}</Text>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -360,11 +412,40 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
   },
+  editButton: {
+    flex: 1,
+    borderRadius: 12,
+    borderColor: colors.primary,
+  },
   deleteButton: {
     flex: 1,
     borderRadius: 12,
     borderColor: colors.danger,
   },
+  historyBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '10',
+  },
+  historyBtnText: { fontSize: 14, color: colors.primary, fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, gap: 12, maxHeight: '60%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
+  noHistory: { fontSize: 14, color: colors.textSecondary, textAlign: 'center', paddingVertical: 16 },
+  historyItem: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
+  historyDot: { width: 10, height: 10, borderRadius: 5, marginTop: 4, flexShrink: 0 },
+  historyInfo: { flex: 1, gap: 2 },
+  historyAction: { fontSize: 13, fontWeight: '600', color: colors.text },
+  historyNote: { fontSize: 12, color: colors.textSecondary },
+  historyTime: { fontSize: 11, color: colors.textSecondary },
 });
 
 export default ExpenseDetailScreen;

@@ -37,6 +37,18 @@ export const addChore = createAsyncThunk(
   }
 );
 
+export const updateChore = createAsyncThunk(
+  'chores/updateChore',
+  async ({ choreId, data }, { rejectWithValue }) => {
+    try {
+      const result = await choreService.updateChore(choreId, data);
+      return result;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update chore');
+    }
+  }
+);
+
 export const completeChore = createAsyncThunk(
   'chores/completeChore',
   async (choreId, { rejectWithValue }) => {
@@ -114,6 +126,12 @@ const choreSlice = createSlice({
       .addCase(addChore.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(updateChore.fulfilled, (state, action) => {
+        const idx = state.chores.findIndex(c => c.id === action.payload.id);
+        if (idx !== -1) state.chores[idx] = action.payload;
+        if (state.selectedChore?.id === action.payload.id) state.selectedChore = action.payload;
+        state.loading = false;
       })
       .addCase(completeChore.fulfilled, (state, action) => {
         const index = state.chores.findIndex(c => c.id === action.payload.id);
