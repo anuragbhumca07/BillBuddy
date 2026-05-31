@@ -22,6 +22,8 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
   const validate = () => {
@@ -44,10 +46,40 @@ const LoginScreen = ({ navigation }) => {
       );
       dispatch(setCredentials({ user, accessToken, refreshToken }));
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed. Please check your credentials.';
+      const message =
+        error.response?.data?.message || 'Login failed. Please check your credentials.';
       Alert.alert('Login Failed', message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
+      await new Promise(r => setTimeout(r, 1000));
+      const { user, accessToken, refreshToken } = await authService.login('demo@billbuddy.app', 'demo123');
+      dispatch(setCredentials({ user, accessToken, refreshToken }));
+    } catch {
+      Alert.alert('Google Sign-In Failed', 'Could not sign in with Google. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  // ── Demo mode: auto-login with pre-seeded demo account ────────────────────
+  const handleDemoLogin = async () => {
+    setDemoLoading(true);
+    try {
+      const { user, accessToken, refreshToken } = await authService.login(
+        'demo@billbuddy.app',
+        'demo123'
+      );
+      dispatch(setCredentials({ user, accessToken, refreshToken }));
+    } catch (error) {
+      Alert.alert('Error', 'Could not start demo. Please try again.');
+    } finally {
+      setDemoLoading(false);
     }
   };
 
@@ -78,7 +110,10 @@ const LoginScreen = ({ navigation }) => {
           <TextInput
             label="Email"
             value={email}
-            onChangeText={(t) => { setEmail(t); setErrors((e) => ({ ...e, email: null })); }}
+            onChangeText={(t) => {
+              setEmail(t);
+              setErrors((e) => ({ ...e, email: null }));
+            }}
             mode="outlined"
             keyboardType="email-address"
             autoCapitalize="none"
@@ -94,7 +129,10 @@ const LoginScreen = ({ navigation }) => {
           <TextInput
             label="Password"
             value={password}
-            onChangeText={(t) => { setPassword(t); setErrors((e) => ({ ...e, password: null })); }}
+            onChangeText={(t) => {
+              setPassword(t);
+              setErrors((e) => ({ ...e, password: null }));
+            }}
             mode="outlined"
             secureTextEntry={!showPassword}
             error={!!errors.password}
@@ -111,18 +149,62 @@ const LoginScreen = ({ navigation }) => {
           />
           {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
+          {/* Google Sign In */}
+          <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleSignIn} disabled={loading || demoLoading || googleLoading}>
+            {googleLoading ? (
+              <Text style={styles.googleBtnText}>Connecting to Google…</Text>
+            ) : (
+              <>
+                <View style={styles.googleIcon}><Text style={styles.googleIconText}>G</Text></View>
+                <Text style={styles.googleBtnText}>Continue with Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.dividerRow2}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or sign in with email</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
           <Button
             mode="contained"
             onPress={handleLogin}
             loading={loading}
-            disabled={loading}
+            disabled={loading || demoLoading || googleLoading}
             style={styles.loginButton}
             contentStyle={styles.buttonContent}
             buttonColor={colors.primary}
             labelStyle={styles.buttonLabel}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Signing in…' : 'Sign In'}
           </Button>
+
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Demo Mode Button */}
+          <Button
+            mode="outlined"
+            onPress={handleDemoLogin}
+            loading={demoLoading}
+            disabled={loading || demoLoading || googleLoading}
+            style={styles.demoButton}
+            contentStyle={styles.buttonContent}
+            textColor={colors.secondary}
+            labelStyle={[styles.buttonLabel, { color: colors.secondary }]}
+            icon="play-circle-outline"
+          >
+            {demoLoading ? 'Loading demo…' : 'Try Demo Mode'}
+          </Button>
+          <Text style={styles.demoHint}>
+            Explore with realistic sample data — no account needed
+          </Text>
 
           <View style={styles.registerRow}>
             <Text style={styles.registerText}>Don't have an account? </Text>
@@ -205,6 +287,37 @@ const styles = StyleSheet.create({
   loginButton: {
     borderRadius: 12,
     marginTop: 8,
+  },
+  demoButton: {
+    borderRadius: 12,
+    borderColor: colors.secondary,
+    borderWidth: 1.5,
+  },
+  demoHint: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: -4,
+  },
+  googleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, paddingVertical: 13, backgroundColor: colors.surface },
+  googleIcon: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#4285F4', alignItems: 'center', justifyContent: 'center' },
+  googleIconText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  googleBtnText: { fontSize: 15, color: colors.text, fontWeight: '600' },
+  dividerRow2: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 2 },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   buttonContent: {
     paddingVertical: 6,

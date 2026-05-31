@@ -90,6 +90,12 @@ const DashboardScreen = ({ navigation }) => {
         <View style={styles.headerRight}>
           <TouchableOpacity
             style={styles.notifButton}
+            onPress={() => navigation.navigate('GroupChat')}
+          >
+            <Ionicons name="chatbubbles-outline" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.notifButton}
             onPress={() => navigation.navigate('Notifications')}
           >
             <Ionicons name="notifications-outline" size={24} color={colors.text} />

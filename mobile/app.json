@@ -7,6 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#4F46E5"
     },
@@ -16,14 +17,32 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#4F46E5"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
       },
-      "package": "com.BillBuddy.app"
+      "package": "com.BillBuddy.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-notifications",
       "expo-camera",
-      ["expo-image-picker", { "photosPermission": "Allow BillBuddy to access your photos for receipt uploads." }]
-    ]
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow BillBuddy to access your photos for receipt uploads."
+        }
+      ],
+      "expo-font",
+      "./plugins/withAndroidAbiFilters"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e9dfe9a5-8e21-4427-b81f-a58176720beb"
+      }
+    },
+    "owner": "anuragbhumca07"
   }
 }

@@ -62,13 +62,16 @@ export const shadows = {
   },
 };
 
+import { MD3LightTheme } from 'react-native-paper';
+
 export const paperTheme = {
+  ...MD3LightTheme,
   colors: {
+    ...MD3LightTheme.colors,
     primary: colors.primary,
     secondary: colors.secondary,
     background: colors.background,
     surface: colors.surface,
-    text: colors.text,
     error: colors.danger,
     onPrimary: '#FFFFFF',
     onSurface: colors.text,

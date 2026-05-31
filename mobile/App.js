@@ -1,12 +1,13 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider as ReduxProvider } from 'react-redux';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import { store } from './src/store';
 import AppNavigator from './src/navigation/AppNavigator';
 import { paperTheme } from './src/utils/theme';
@@ -42,7 +43,8 @@ const registerForPushNotifications = async () => {
       return null;
     }
 
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
@@ -115,13 +117,15 @@ export default function App() {
   }, []);
 
   return (
-    <ReduxProvider store={store}>
-      <PaperProvider theme={paperTheme}>
-        <SafeAreaProvider>
-          <StatusBar style="auto" />
-          <AppNavigator />
-        </SafeAreaProvider>
-      </PaperProvider>
-    </ReduxProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ReduxProvider store={store}>
+        <PaperProvider theme={paperTheme}>
+          <SafeAreaProvider>
+            <StatusBar style="auto" />
+            <AppNavigator />
+          </SafeAreaProvider>
+        </PaperProvider>
+      </ReduxProvider>
+    </GestureHandlerRootView>
   );
 }

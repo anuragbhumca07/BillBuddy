@@ -120,7 +120,8 @@ const ProfileScreen = ({ navigation }) => {
     {
       section: 'Household',
       items: [
-        { icon: 'people-outline', label: 'Members', onPress: () => navigation.navigate('Members') },
+        { icon: 'people-outline', label: 'Members & Groups', onPress: () => navigation.navigate('Members') },
+        { icon: 'chatbubbles-outline', label: 'Group Chat', onPress: () => navigation.navigate('GroupChat') },
         { icon: 'document-text-outline', label: 'House Rules', onPress: () => navigation.navigate('HouseRules') },
         { icon: 'home-plus-outline', label: 'Create Household', onPress: () => navigation.navigate('CreateHouse') },
         { icon: 'login-outline', label: 'Join Household', onPress: () => navigation.navigate('JoinHouse') },
@@ -130,6 +131,7 @@ const ProfileScreen = ({ navigation }) => {
       section: 'Account',
       items: [
         { icon: 'person-outline', label: 'Edit Name', onPress: () => { setNewName(user?.name || ''); setEditModalVisible(true); } },
+        { icon: 'gift-outline', label: 'Refer & Earn', onPress: () => navigation.navigate('Referral') },
         { icon: 'notifications-outline', label: 'Notifications', onPress: () => navigation.navigate('Notifications') },
       ],
     },
