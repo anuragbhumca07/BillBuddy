@@ -15,14 +15,17 @@ test.describe('Expense Management', () => {
   let houseId;
   let aliceExpenses;
   let bobExpenses;
+  let apiContext;
 
-  test.beforeAll(async ({ request }) => {
+  test.beforeAll(async ({ playwright }) => {
+    apiContext = await playwright.request.newContext();
+
     // Register Alice and Bob
-    aliceAuth = await registerUser(request, uniqueUser(users.alice, ts));
-    bobAuth = await registerUser(request, uniqueUser(users.bob, ts));
+    aliceAuth = await registerUser(apiContext, uniqueUser(users.alice, ts));
+    bobAuth = await registerUser(apiContext, uniqueUser(users.bob, ts));
 
     // Alice creates a house
-    const aliceHousePage = new HousePage(request, aliceAuth.token);
+    const aliceHousePage = new HousePage(apiContext, aliceAuth.token);
     const houseResp = await aliceHousePage.create({
       name: `${house.name} Expense ${ts}`,
       address: house.address,
@@ -32,12 +35,16 @@ test.describe('Expense Management', () => {
     const inviteCode = houseBody.house.invite_code;
 
     // Bob joins the house
-    const bobHousePage = new HousePage(request, bobAuth.token);
+    const bobHousePage = new HousePage(apiContext, bobAuth.token);
     await bobHousePage.join(inviteCode);
 
     // Create expense page helpers
-    aliceExpenses = new ExpensePage(request, aliceAuth.token, houseId);
-    bobExpenses = new ExpensePage(request, bobAuth.token, houseId);
+    aliceExpenses = new ExpensePage(apiContext, aliceAuth.token, houseId);
+    bobExpenses = new ExpensePage(apiContext, bobAuth.token, houseId);
+  });
+
+  test.afterAll(async () => {
+    await apiContext.dispose();
   });
 
   test('should create expense with equal split', async () => {
@@ -186,23 +193,22 @@ test.describe('Expense Management', () => {
     expect(found).toBeUndefined();
   });
 
-  test('should get expense balances with correct net amounts', async () => {
+  test('should get expense balances with correct net amounts', async ({ request }) => {
     // Create a fresh house for isolated balance testing
     const ts2 = Date.now() + 1000;
-    const aliceAuth2 = await registerUser(aliceExpenses.request, uniqueUser(users.alice, ts2));
-    const bobAuth2 = await registerUser(aliceExpenses.request, uniqueUser(users.bob, ts2));
+    const aliceAuth2 = await registerUser(request, uniqueUser(users.alice, ts2));
+    const bobAuth2   = await registerUser(request, uniqueUser(users.bob, ts2));
 
-    const aliceHouse2 = new HousePage(aliceExpenses.request, aliceAuth2.token);
+    const aliceHouse2 = new HousePage(request, aliceAuth2.token);
     const houseResp = await aliceHouse2.create({ name: `Balance Test House ${ts2}` });
     const houseBody = await houseResp.json();
     const houseId2 = houseBody.house.id;
     const ic2 = houseBody.house.invite_code;
 
-    const bobHouse2 = new HousePage(aliceExpenses.request, bobAuth2.token);
-    await bobHouse2.join(ic2);
+    await new HousePage(request, bobAuth2.token).join(ic2);
 
-    const aliceExp2 = new ExpensePage(aliceExpenses.request, aliceAuth2.token, houseId2);
-    const bobExp2 = new ExpensePage(aliceExpenses.request, bobAuth2.token, houseId2);
+    const aliceExp2 = new ExpensePage(request, aliceAuth2.token, houseId2);
+    const bobExp2   = new ExpensePage(request, bobAuth2.token, houseId2);
 
     // Alice pays $100 (Bob owes $50)
     await aliceExp2.create({

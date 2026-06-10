@@ -3,6 +3,7 @@ const jwt    = require('jsonwebtoken');
 const { query } = require('../models/db');
 
 let redisClient = null;
+const memTokens = new Map(); // in-memory fallback when Redis is not available
 
 const setRedisClient = (client) => { redisClient = client; };
 
@@ -10,21 +11,27 @@ const generateAccessToken  = (userId) => jwt.sign({ userId }, process.env.JWT_SE
 const generateRefreshToken = (userId) => jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
 const storeRefreshToken = async (userId, token) => {
-  if (!redisClient) return;
-  try { await redisClient.set(`refresh:${userId}`, token, { EX: 7 * 24 * 60 * 60 }); }
-  catch (err) { console.warn('Redis storeRefreshToken failed:', err.message); }
+  if (redisClient) {
+    try { await redisClient.set(`refresh:${userId}`, token, { EX: 7 * 24 * 60 * 60 }); return; }
+    catch (err) { console.warn('Redis storeRefreshToken failed:', err.message); }
+  }
+  memTokens.set(`refresh:${userId}`, token);
 };
 
 const getStoredRefreshToken = async (userId) => {
-  if (!redisClient) return null;
-  try { return await redisClient.get(`refresh:${userId}`); }
-  catch (err) { console.warn('Redis getStoredRefreshToken failed:', err.message); return null; }
+  if (redisClient) {
+    try { return await redisClient.get(`refresh:${userId}`); }
+    catch (err) { console.warn('Redis getStoredRefreshToken failed:', err.message); }
+  }
+  return memTokens.get(`refresh:${userId}`) ?? null;
 };
 
 const deleteRefreshToken = async (userId) => {
-  if (!redisClient) return;
-  try { await redisClient.del(`refresh:${userId}`); }
-  catch (err) { console.warn('Redis deleteRefreshToken failed:', err.message); }
+  if (redisClient) {
+    try { await redisClient.del(`refresh:${userId}`); return; }
+    catch (err) { console.warn('Redis deleteRefreshToken failed:', err.message); }
+  }
+  memTokens.delete(`refresh:${userId}`);
 };
 
 // ─── POST /auth/register ──────────────────────────────────────────────────────
@@ -128,7 +135,12 @@ const refresh = async (req, res, next) => {
     const userId = decoded.userId;
 
     const stored = await getStoredRefreshToken(userId);
-    if (stored !== null && stored !== token) {
+    if (stored === null) {
+      // Token was revoked (logout) or never issued
+      return res.status(401).json({ success: false, error: 'Refresh token has been revoked' });
+    }
+    if (stored !== token) {
+      // Different token stored — possible reuse attack, invalidate everything
       await deleteRefreshToken(userId);
       return res.status(401).json({ success: false, error: 'Refresh token reuse detected' });
     }

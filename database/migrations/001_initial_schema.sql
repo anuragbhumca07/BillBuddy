@@ -3,14 +3,11 @@
 -- Migration: 001_initial_schema.sql
 -- ============================================================
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- ============================================================
+--============================================================
 -- USERS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS users (
-  id            UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   name          VARCHAR(100) NOT NULL,
   email         VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
@@ -23,7 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- HOUSES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS houses (
-  id          UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   name        VARCHAR(100) NOT NULL,
   address     TEXT,
   invite_code VARCHAR(10)  UNIQUE NOT NULL,
@@ -35,7 +32,7 @@ CREATE TABLE IF NOT EXISTS houses (
 -- HOUSE MEMBERS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS house_members (
-  id        UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id        UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   house_id  UUID        NOT NULL REFERENCES houses(id) ON DELETE CASCADE,
   user_id   UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   role      VARCHAR(20) DEFAULT 'member' CHECK (role IN ('admin', 'member')),
@@ -47,7 +44,7 @@ CREATE TABLE IF NOT EXISTS house_members (
 -- EXPENSES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS expenses (
-  id          UUID           PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id          UUID           PRIMARY KEY DEFAULT gen_random_uuid(),
   house_id    UUID           NOT NULL REFERENCES houses(id) ON DELETE CASCADE,
   paid_by     UUID           NOT NULL REFERENCES users(id),
   title       VARCHAR(200)   NOT NULL,
@@ -63,7 +60,7 @@ CREATE TABLE IF NOT EXISTS expenses (
 -- EXPENSE SPLITS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS expense_splits (
-  id          UUID          PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id          UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   expense_id  UUID          NOT NULL REFERENCES expenses(id) ON DELETE CASCADE,
   user_id     UUID          NOT NULL REFERENCES users(id),
   amount_owed DECIMAL(10,2) NOT NULL,
@@ -76,12 +73,12 @@ CREATE TABLE IF NOT EXISTS expense_splits (
 -- CHORES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS chores (
-  id           UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   house_id     UUID         NOT NULL REFERENCES houses(id) ON DELETE CASCADE,
   title        VARCHAR(200) NOT NULL,
   description  TEXT,
   frequency    VARCHAR(20)  DEFAULT 'weekly'
-                 CHECK (frequency IN ('daily', 'weekly', 'monthly')),
+                 CHECK (frequency IN ('once', 'daily', 'weekly', 'monthly')),
   assigned_to  UUID         REFERENCES users(id),
   due_date     DATE,
   is_completed BOOLEAN      DEFAULT FALSE,
@@ -93,7 +90,7 @@ CREATE TABLE IF NOT EXISTS chores (
 -- CHORE HISTORY
 -- ============================================================
 CREATE TABLE IF NOT EXISTS chore_history (
-  id           UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   chore_id     UUID        NOT NULL REFERENCES chores(id) ON DELETE CASCADE,
   completed_by UUID        NOT NULL REFERENCES users(id),
   completed_at TIMESTAMPTZ DEFAULT NOW()
@@ -103,7 +100,7 @@ CREATE TABLE IF NOT EXISTS chore_history (
 -- ANNOUNCEMENTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS announcements (
-  id         UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   house_id   UUID         NOT NULL REFERENCES houses(id) ON DELETE CASCADE,
   posted_by  UUID         NOT NULL REFERENCES users(id),
   title      VARCHAR(200) NOT NULL,
@@ -115,7 +112,7 @@ CREATE TABLE IF NOT EXISTS announcements (
 -- HOUSE RULES
 -- ============================================================
 CREATE TABLE IF NOT EXISTS house_rules (
-  id         UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   house_id   UUID        NOT NULL REFERENCES houses(id) ON DELETE CASCADE,
   rule_text  TEXT        NOT NULL,
   created_by UUID        NOT NULL REFERENCES users(id),
@@ -126,7 +123,7 @@ CREATE TABLE IF NOT EXISTS house_rules (
 -- NOTIFICATIONS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS notifications (
-  id         UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type       VARCHAR(50) NOT NULL,
   message    TEXT        NOT NULL,

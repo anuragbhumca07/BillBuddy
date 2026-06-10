@@ -108,8 +108,8 @@ const AddExpenseScreen = ({ navigation }) => {
       const total = parseFloat(amount);
       const count = selectedMembers.length;
       const splits = splitType === 'equal'
-        ? selectedMembers.map(id => ({ user: id, amount: total / count, settled: id === user?.id }))
-        : selectedMembers.map(id => ({ user: id, amount: parseFloat(customAmounts[id] || 0), settled: id === user?.id }));
+        ? selectedMembers.map(id => ({ user_id: id, amount: total / count, settled: id === user?.id }))
+        : selectedMembers.map(id => ({ user_id: id, amount: parseFloat(customAmounts[id] || 0), settled: id === user?.id }));
 
       await dispatch(addExpense({
         title: title.trim(), amount: total, category, date,

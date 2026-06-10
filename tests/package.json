@@ -8,6 +8,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.40.1",
-    "axios": "^1.6.2"
+    "axios": "^1.6.2",
+    "embedded-postgres": "^18.4.0-beta.17",
+    "pg": "^8.21.0"
   }
 }

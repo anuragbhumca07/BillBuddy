@@ -18,12 +18,15 @@ test.describe('Dashboard Data', () => {
   let dashboard;
   let aliceExpenses;
   let aliceChores;
+  let apiContext;
 
-  test.beforeAll(async ({ request }) => {
-    aliceAuth = await registerUser(request, uniqueUser(users.alice, ts));
-    bobAuth = await registerUser(request, uniqueUser(users.bob, ts));
+  test.beforeAll(async ({ playwright }) => {
+    apiContext = await playwright.request.newContext();
 
-    const aliceHousePage = new HousePage(request, aliceAuth.token);
+    aliceAuth = await registerUser(apiContext, uniqueUser(users.alice, ts));
+    bobAuth = await registerUser(apiContext, uniqueUser(users.bob, ts));
+
+    const aliceHousePage = new HousePage(apiContext, aliceAuth.token);
     const houseResp = await aliceHousePage.create({
       name: `${house.name} Dashboard ${ts}`,
       address: house.address,
@@ -32,11 +35,15 @@ test.describe('Dashboard Data', () => {
     houseId = houseBody.house.id;
     const inviteCode = houseBody.house.invite_code;
 
-    await new HousePage(request, bobAuth.token).join(inviteCode);
+    await new HousePage(apiContext, bobAuth.token).join(inviteCode);
 
-    dashboard = new DashboardPage(request, aliceAuth.token, houseId);
-    aliceExpenses = new ExpensePage(request, aliceAuth.token, houseId);
-    aliceChores = new ChorePage(request, aliceAuth.token, houseId);
+    dashboard = new DashboardPage(apiContext, aliceAuth.token, houseId);
+    aliceExpenses = new ExpensePage(apiContext, aliceAuth.token, houseId);
+    aliceChores = new ChorePage(apiContext, aliceAuth.token, houseId);
+  });
+
+  test.afterAll(async () => {
+    await apiContext.dispose();
   });
 
   test('get recent expenses with limit', async () => {
@@ -97,23 +104,23 @@ test.describe('Dashboard Data', () => {
     }
   });
 
-  test('correct balance totals', async () => {
+  test('correct balance totals', async ({ request }) => {
     // Set up isolated house for clean balance testing
     const ts2 = Date.now() + 2000;
-    const aliceAuth2 = await registerUser(aliceExpenses.request, uniqueUser(users.alice, ts2));
-    const bobAuth2 = await registerUser(aliceExpenses.request, uniqueUser(users.bob, ts2));
+    const aliceAuth2 = await registerUser(request, uniqueUser(users.alice, ts2));
+    const bobAuth2   = await registerUser(request, uniqueUser(users.bob, ts2));
 
-    const aliceHousePage2 = new HousePage(aliceExpenses.request, aliceAuth2.token);
+    const aliceHousePage2 = new HousePage(request, aliceAuth2.token);
     const houseResp2 = await aliceHousePage2.create({
       name: `Balance Totals Dashboard ${ts2}`,
     });
     const houseBody2 = await houseResp2.json();
     const houseId2 = houseBody2.house.id;
 
-    await new HousePage(aliceExpenses.request, bobAuth2.token).join(houseBody2.house.invite_code);
+    await new HousePage(request, bobAuth2.token).join(houseBody2.house.invite_code);
 
-    const aliceExp2 = new ExpensePage(aliceExpenses.request, aliceAuth2.token, houseId2);
-    const dashboard2 = new DashboardPage(aliceExpenses.request, aliceAuth2.token, houseId2);
+    const aliceExp2  = new ExpensePage(request, aliceAuth2.token, houseId2);
+    const dashboard2 = new DashboardPage(request, aliceAuth2.token, houseId2);
 
     // Alice pays $80 (Bob owes $40)
     await aliceExp2.create({

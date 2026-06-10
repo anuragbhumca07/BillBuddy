@@ -20,7 +20,7 @@ export class BalancePage {
    * @returns {Promise<import('@playwright/test').APIResponse>}
    */
   async getBalances() {
-    return get(this.request, `/houses/${this.houseId}/balances`, this.token);
+    return get(this.request, `/houses/${this.houseId}/expenses/balances`, this.token);
   }
 
   /**

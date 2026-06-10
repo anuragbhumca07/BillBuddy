@@ -128,7 +128,7 @@ export function handleMockRequest(config) {
     const id = url.split('/')[2];
     return ok({ history: _expenseHistory.filter(h => h.expenseId === id) });
   }
-  if (method === 'get' && url.startsWith('/expenses') && !url.includes('/balances') && !url.includes('/settle') && !url.includes('/exp-')) {
+  if (method === 'get' && /^\/expenses(\?.*)?$/.test(url)) {
     return ok({ expenses: _expenses });
   }
   if (method === 'get' && /^\/expenses\/[^/]+$/.test(url) && !url.includes('/balances')) {

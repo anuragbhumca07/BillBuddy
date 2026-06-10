@@ -47,6 +47,6 @@ export class DashboardPage {
    * @returns {Promise<import('@playwright/test').APIResponse>}
    */
   async getBalanceSummary() {
-    return get(this.request, `/houses/${this.houseId}/balances`, this.token);
+    return get(this.request, `/houses/${this.houseId}/expenses/balances`, this.token);
   }
 }

@@ -8,7 +8,7 @@ export const fetchExpenses = createAsyncThunk(
       const data = await expenseService.getExpenses(params);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch expenses');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch expenses');
     }
   }
 );
@@ -20,7 +20,7 @@ export const fetchExpenseDetail = createAsyncThunk(
       const data = await expenseService.getExpense(expenseId);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch expense');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch expense');
     }
   }
 );
@@ -32,7 +32,7 @@ export const addExpense = createAsyncThunk(
       const data = await expenseService.createExpense(expenseData);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to add expense');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to add expense');
     }
   }
 );
@@ -44,7 +44,7 @@ export const updateExpense = createAsyncThunk(
       const result = await expenseService.updateExpense(expenseId, data);
       return result;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update expense');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to update expense');
     }
   }
 );
@@ -56,7 +56,7 @@ export const fetchExpenseHistory = createAsyncThunk(
       const response = await expenseService.getExpenseHistory(expenseId);
       return response;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch history');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch history');
     }
   }
 );
@@ -68,7 +68,7 @@ export const deleteExpense = createAsyncThunk(
       await expenseService.deleteExpense(expenseId);
       return expenseId;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete expense');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to delete expense');
     }
   }
 );
@@ -80,7 +80,7 @@ export const fetchBalances = createAsyncThunk(
       const data = await expenseService.getBalances();
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch balances');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch balances');
     }
   }
 );
@@ -92,7 +92,7 @@ export const settleDebt = createAsyncThunk(
       const data = await expenseService.settleDebt(debtData);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to settle debt');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to settle debt');
     }
   }
 );

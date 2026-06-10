@@ -4,37 +4,38 @@ const { notifyHouseMembers } = require('../services/notificationService');
 
 // ─── POST /houses ─────────────────────────────────────────────────────────────
 const createHouse = async (req, res, next) => {
-  const client = await getClient();
   try {
-    await client.query('BEGIN');
-
     const { name, address } = req.body;
     const userId = req.user.id;
-
     const inviteCode = await generateUniqueInviteCode();
 
-    const houseResult = await client.query(
-      `INSERT INTO houses (id, name, address, invite_code, created_by, created_at)
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())
-       RETURNING *`,
-      [name.trim(), address || null, inviteCode, userId]
-    );
+    let house;
+    const client = await getClient();
+    try {
+      await client.query('BEGIN');
+      const houseResult = await client.query(
+        `INSERT INTO houses (id, name, address, invite_code, created_by, created_at)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())
+         RETURNING *`,
+        [name.trim(), address || null, inviteCode, userId]
+      );
+      house = houseResult.rows[0];
+      await client.query(
+        `INSERT INTO house_members (house_id, user_id, role, joined_at)
+         VALUES ($1, $2, 'admin', NOW())`,
+        [house.id, userId]
+      );
+      await client.query('COMMIT');
+    } catch (err) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+      throw err;
+    } finally {
+      client.release();
+    }
 
-    const house = houseResult.rows[0];
-
-    await client.query(
-      `INSERT INTO house_members (house_id, user_id, role, joined_at)
-       VALUES ($1, $2, 'admin', NOW())`,
-      [house.id, userId]
-    );
-
-    await client.query('COMMIT');
     res.status(201).json({ house });
   } catch (err) {
-    await client.query('ROLLBACK');
     next(err);
-  } finally {
-    client.release();
   }
 };
 
@@ -94,55 +95,60 @@ const getHouse = async (req, res, next) => {
 
 // ─── POST /houses/join ────────────────────────────────────────────────────────
 const joinHouse = async (req, res, next) => {
-  const client = await getClient();
   try {
-    await client.query('BEGIN');
-
-    // Accept both invite_code and code (mobile sends 'code')
     const code = req.body.invite_code || req.body.code;
     if (!code) {
       return res.status(400).json({ success: false, error: 'invite_code is required' });
     }
-
     const userId = req.user.id;
 
-    const houseResult = await client.query(
-      'SELECT * FROM houses WHERE UPPER(invite_code) = $1',
-      [code.toUpperCase()]
-    );
+    let house;
+    let earlyResponse = null;
+    console.log('[joinHouse] calling getClient()');
+    const client = await getClient();
+    console.log('[joinHouse] got client, starting transaction');
+    try {
+      await client.query('BEGIN');
+      console.log('[joinHouse] BEGIN ok, querying house by invite_code:', code.toUpperCase());
 
-    if (houseResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ success: false, error: 'Invalid invite code' });
+      const houseResult = await client.query(
+        'SELECT * FROM houses WHERE UPPER(invite_code) = $1',
+        [code.toUpperCase()]
+      );
+      if (houseResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        earlyResponse = () => res.status(404).json({ success: false, error: 'Invalid invite code' });
+      } else {
+        house = houseResult.rows[0];
+        const memberCheck = await client.query(
+          'SELECT id FROM house_members WHERE house_id = $1 AND user_id = $2',
+          [house.id, userId]
+        );
+        if (memberCheck.rows.length > 0) {
+          await client.query('ROLLBACK');
+          earlyResponse = () => res.status(409).json({ success: false, error: 'Already a member of this house' });
+        } else {
+          await client.query(
+            `INSERT INTO house_members (house_id, user_id, role, joined_at) VALUES ($1, $2, 'member', NOW())`,
+            [house.id, userId]
+          );
+          await client.query('COMMIT');
+        }
+      }
+    } catch (err) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+      throw err;
+    } finally {
+      client.release();
     }
 
-    const house = houseResult.rows[0];
+    if (earlyResponse) return earlyResponse();
 
-    const memberCheck = await client.query(
-      'SELECT id FROM house_members WHERE house_id = $1 AND user_id = $2',
-      [house.id, userId]
-    );
-
-    if (memberCheck.rows.length > 0) {
-      await client.query('ROLLBACK');
-      return res.status(409).json({ success: false, error: 'Already a member of this house' });
-    }
-
-    await client.query(
-      `INSERT INTO house_members (house_id, user_id, role, joined_at) VALUES ($1, $2, 'member', NOW())`,
-      [house.id, userId]
-    );
-
-    await client.query('COMMIT');
-
+    // Post-commit: client already released
     await notifyHouseMembers(house.id, 'member_joined', `${req.user.name} joined ${house.name}!`, userId);
-
     res.json({ house });
   } catch (err) {
-    await client.query('ROLLBACK');
     next(err);
-  } finally {
-    client.release();
   }
 };
 

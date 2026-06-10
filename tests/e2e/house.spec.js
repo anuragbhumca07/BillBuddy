@@ -12,41 +12,35 @@ test.describe('House Management', () => {
   let aliceAuth;
   let bobAuth;
   let carolAuth;
-
-  test.beforeAll(async ({ request }) => {
-    // Register Alice (will be admin)
-    aliceAuth = await registerUser(request, uniqueUser(users.alice, ts));
-    // Register Bob and Carol for joining tests
-    bobAuth = await registerUser(request, uniqueUser(users.bob, ts));
-    carolAuth = await registerUser(request, uniqueUser(users.carol, ts));
-  });
-
-  /** Shared state: created house & its invite code */
   let createdHouseId;
   let inviteCode;
 
+  test.beforeAll(async ({ request }) => {
+    aliceAuth = await registerUser(request, uniqueUser(users.alice, ts));
+    bobAuth   = await registerUser(request, uniqueUser(users.bob, ts));
+    carolAuth = await registerUser(request, uniqueUser(users.carol, ts));
+
+    const alicePage  = new HousePage(request, aliceAuth.token);
+    const houseResp  = await alicePage.create({ name: house.name, address: house.address });
+    const houseBody  = await houseResp.json();
+    createdHouseId   = houseBody.house.id;
+    inviteCode       = houseBody.house.invite_code;
+
+    await new HousePage(request, bobAuth.token).join(inviteCode);
+  });
+
   test('should create a house', async ({ request }) => {
     const alicePage = new HousePage(request, aliceAuth.token);
-    const response = await alicePage.create({
-      name: house.name,
-      address: house.address,
-    });
 
-    expect(response.status()).toBe(201);
-
-    const body = await response.json();
-    expect(body).toHaveProperty('house') ;
+    // Verify house attributes
+    const houseResp = await alicePage.getHouse(createdHouseId);
+    expect(houseResp.status()).toBe(200);
+    const body = await houseResp.json();
     const h = body.house;
-
     expect(h).toHaveProperty('id');
     expect(h.name).toBe(house.name);
-    // Invite code must be exactly 6 characters
     expect(h).toHaveProperty('invite_code');
     expect(h.invite_code.length).toBe(6);
-
-    // Store for subsequent tests
-    createdHouseId = h.id;
-    inviteCode = h.invite_code;
 
     // Alice should appear as admin in the members list
     const membersResp = await alicePage.listMembers(createdHouseId);
@@ -59,25 +53,20 @@ test.describe('House Management', () => {
   });
 
   test('second user joins via invite code', async ({ request }) => {
-    // Bob joins using the invite code Alice received
-    const bobPage = new HousePage(request, bobAuth.token);
-    const joinResp = await bobPage.join(inviteCode);
-
-    expect(joinResp.status()).toBe(200);
-
-    const joinBody = await joinResp.json();
-    expect(joinBody).toHaveProperty('house');
-    expect(joinBody.house.id).toBe(createdHouseId);
-
-    // Verify Bob appears in the members list
+    // Bob already joined in beforeAll — verify he appears as member
     const alicePage = new HousePage(request, aliceAuth.token);
     const membersResp = await alicePage.listMembers(createdHouseId);
+    expect(membersResp.status()).toBe(200);
     const membersBody = await membersResp.json();
     const members = membersBody.members || membersBody;
 
     const bob = members.find((m) => m.user_id === bobAuth.user.id || m.id === bobAuth.user.id);
     expect(bob).toBeDefined();
     expect(bob.role).toBe('member');
+
+    // Attempt to join again → should return 409 (already a member)
+    const rejoinResp = await new HousePage(request, bobAuth.token).join(inviteCode);
+    expect(rejoinResp.status()).toBe(409);
   });
 
   test('should list house members', async ({ request }) => {

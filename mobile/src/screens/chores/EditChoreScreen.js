@@ -15,10 +15,10 @@ import MemberAvatar from '../../components/MemberAvatar';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 const FREQUENCIES = [
-  { key: 'Once', label: 'Once' },
-  { key: 'Daily', label: 'Daily' },
-  { key: 'Weekly', label: 'Weekly' },
-  { key: 'Monthly', label: 'Monthly' },
+  { key: 'once', label: 'Once' },
+  { key: 'daily', label: 'Daily' },
+  { key: 'weekly', label: 'Weekly' },
+  { key: 'monthly', label: 'Monthly' },
 ];
 
 const PRIORITIES = [
@@ -37,7 +37,7 @@ const EditChoreScreen = ({ route, navigation }) => {
 
   const [title, setTitle]             = useState('');
   const [description, setDescription] = useState('');
-  const [frequency, setFrequency]     = useState('Weekly');
+  const [frequency, setFrequency]     = useState('weekly');
   const [priority, setPriority]       = useState('medium');
   const [assignedTo, setAssignedTo]   = useState(null);
   const [dueDate, setDueDate]         = useState('');
@@ -56,7 +56,7 @@ const EditChoreScreen = ({ route, navigation }) => {
     if (chore && chore.id === choreId && !initialized) {
       setTitle(chore.title || '');
       setDescription(chore.description || '');
-      setFrequency(chore.frequency || chore.recurring || 'Weekly');
+      setFrequency((chore.frequency || chore.recurring || 'weekly').toLowerCase());
       setPriority(chore.priority || 'medium');
       setAssignedTo(chore.assignedTo?.id || chore.assigned_to || null);
       setDueDate((chore.dueDate || chore.due_date || '').split('T')[0]);
@@ -79,7 +79,7 @@ const EditChoreScreen = ({ route, navigation }) => {
     try {
       await dispatch(updateChore({
         choreId,
-        data: { title: title.trim(), description: description.trim(), frequency, priority, assignedTo: assignedTo, assigned_to: assignedTo, dueDate, due_date: dueDate },
+        data: { title: title.trim(), description: description.trim(), frequency, priority, assigned_to: assignedTo, due_date: dueDate },
       })).unwrap();
       navigation.goBack();
     } catch (err) {

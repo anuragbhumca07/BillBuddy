@@ -12,10 +12,10 @@ import { colors } from '../../utils/theme';
 import MemberAvatar from '../../components/MemberAvatar';
 
 const FREQUENCIES = [
-  { key: 'Once', label: 'Once' },
-  { key: 'Daily', label: 'Daily' },
-  { key: 'Weekly', label: 'Weekly' },
-  { key: 'Monthly', label: 'Monthly' },
+  { key: 'once', label: 'Once' },
+  { key: 'daily', label: 'Daily' },
+  { key: 'weekly', label: 'Weekly' },
+  { key: 'monthly', label: 'Monthly' },
 ];
 
 const PRIORITIES = [
@@ -32,7 +32,7 @@ const AddChoreScreen = ({ navigation }) => {
   const [title, setTitle]             = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes]             = useState('');
-  const [frequency, setFrequency]     = useState('Weekly');
+  const [frequency, setFrequency]     = useState('weekly');
   const [priority, setPriority]       = useState('medium');
   const [assignedTo, setAssignedTo]   = useState(null);
   const [dueDate, setDueDate]         = useState(
@@ -90,8 +90,8 @@ const AddChoreScreen = ({ navigation }) => {
         notes: notes.trim() || undefined,
         frequency,
         priority,
-        assignedTo,
-        dueDate,
+        assigned_to: assignedTo,
+        due_date: dueDate,
       })).unwrap();
       navigation.goBack();
     } catch (err) {

@@ -14,12 +14,15 @@ test.describe('Announcements & House Rules', () => {
   let houseId;
   let aliceAnnouncements;
   let bobAnnouncements;
+  let apiContext;
 
-  test.beforeAll(async ({ request }) => {
-    aliceAuth = await registerUser(request, uniqueUser(users.alice, ts));
-    bobAuth = await registerUser(request, uniqueUser(users.bob, ts));
+  test.beforeAll(async ({ playwright }) => {
+    apiContext = await playwright.request.newContext();
 
-    const aliceHousePage = new HousePage(request, aliceAuth.token);
+    aliceAuth = await registerUser(apiContext, uniqueUser(users.alice, ts));
+    bobAuth = await registerUser(apiContext, uniqueUser(users.bob, ts));
+
+    const aliceHousePage = new HousePage(apiContext, aliceAuth.token);
     const houseResp = await aliceHousePage.create({
       name: `${house.name} Announcements ${ts}`,
       address: house.address,
@@ -28,11 +31,15 @@ test.describe('Announcements & House Rules', () => {
     houseId = houseBody.house.id;
     const inviteCode = houseBody.house.invite_code;
 
-    const bobHousePage = new HousePage(request, bobAuth.token);
+    const bobHousePage = new HousePage(apiContext, bobAuth.token);
     await bobHousePage.join(inviteCode);
 
-    aliceAnnouncements = new AnnouncementPage(request, aliceAuth.token, houseId);
-    bobAnnouncements = new AnnouncementPage(request, bobAuth.token, houseId);
+    aliceAnnouncements = new AnnouncementPage(apiContext, aliceAuth.token, houseId);
+    bobAnnouncements = new AnnouncementPage(apiContext, bobAuth.token, houseId);
+  });
+
+  test.afterAll(async () => {
+    await apiContext.dispose();
   });
 
   // ─── Announcements ─────────────────────────────────────────────────────────

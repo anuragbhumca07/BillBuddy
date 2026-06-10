@@ -72,8 +72,8 @@ test.describe('Notifications', () => {
     expect(afterResp.status()).toBe(200);
     expect(after.length).toBeGreaterThan(beforeCount);
 
-    // The newest notification should reference an expense and be unread
-    const newest = after.find((n) => !n.is_read && n.type === 'expense');
+    // The newest unread notification should reference an expense event
+    const newest = after.find((n) => !n.is_read && (n.type === 'expense' || n.type === 'expense_added'));
     expect(newest).toBeDefined();
     expect(newest.message).toBeTruthy();
   });

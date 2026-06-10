@@ -64,8 +64,8 @@ const createExpenseRules = [
 const createChoreRules = [
   body('title').trim().notEmpty().withMessage('Chore title is required'),
   body('frequency')
-    .isIn(['daily', 'weekly', 'monthly'])
-    .withMessage('Frequency must be daily, weekly, or monthly'),
+    .isIn(['once', 'daily', 'weekly', 'monthly'])
+    .withMessage('Frequency must be once, daily, weekly, or monthly'),
   body('assigned_to').optional().isUUID().withMessage('assigned_to must be a UUID'),
   body('due_date').optional().isISO8601().withMessage('due_date must be a valid ISO 8601 date'),
   body('description').optional().trim(),

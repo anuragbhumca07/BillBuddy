@@ -8,7 +8,7 @@ export const fetchChores = createAsyncThunk(
       const data = await choreService.getChores(params);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch chores');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch chores');
     }
   }
 );
@@ -20,7 +20,7 @@ export const fetchChoreDetail = createAsyncThunk(
       const data = await choreService.getChore(choreId);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch chore');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch chore');
     }
   }
 );
@@ -32,7 +32,7 @@ export const addChore = createAsyncThunk(
       const data = await choreService.createChore(choreData);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to add chore');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to add chore');
     }
   }
 );
@@ -44,7 +44,7 @@ export const updateChore = createAsyncThunk(
       const result = await choreService.updateChore(choreId, data);
       return result;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update chore');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to update chore');
     }
   }
 );
@@ -56,7 +56,7 @@ export const completeChore = createAsyncThunk(
       const data = await choreService.completeChore(choreId);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to complete chore');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to complete chore');
     }
   }
 );
@@ -68,7 +68,7 @@ export const deleteChore = createAsyncThunk(
       await choreService.deleteChore(choreId);
       return choreId;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete chore');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to delete chore');
     }
   }
 );
@@ -80,7 +80,7 @@ export const fetchHistory = createAsyncThunk(
       const data = await choreService.getHistory(choreId);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch history');
+      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch history');
     }
   }
 );

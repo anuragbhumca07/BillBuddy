@@ -8,7 +8,7 @@ const socketService = require('../services/socketService');
 const listChores = async (req, res, next) => {
   try {
     const houseId = req.params.id;
-    const { assigned_to, completed } = req.query;
+    const { assigned_to, completed, upcoming, limit } = req.query;
 
     const conditions = ['c.house_id = $1'];
     const values     = [houseId];
@@ -23,17 +23,21 @@ const listChores = async (req, res, next) => {
       values.push(completed === 'true');
     }
 
-    const result = await query(
-      `SELECT c.*,
-              u.name AS assigned_to_name,
-              u.avatar_url AS assigned_to_avatar
-       FROM chores c
-       LEFT JOIN users u ON u.id = c.assigned_to
-       WHERE ${conditions.join(' AND ')}
-       ORDER BY c.is_completed ASC, c.due_date ASC NULLS LAST`,
-      values
-    );
+    // upcoming=N returns next N upcoming (not completed) chores sorted by due date
+    const cap = upcoming ? parseInt(upcoming, 10) : (limit ? parseInt(limit, 10) : null);
 
+    const sql = `
+      SELECT c.*,
+             u.name AS assigned_to_name,
+             u.avatar_url AS assigned_to_avatar
+      FROM chores c
+      LEFT JOIN users u ON u.id = c.assigned_to
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY c.is_completed ASC, c.due_date ASC NULLS LAST
+      ${cap ? `LIMIT ${cap}` : ''}
+    `;
+
+    const result = await query(sql, values);
     res.json({ chores: result.rows });
   } catch (err) {
     next(err);
@@ -179,75 +183,71 @@ const deleteChore = async (req, res, next) => {
 // POST /chores/:id/complete
 // ─────────────────────────────────────────────────────────────────────────────
 const completeChore = async (req, res, next) => {
-  const client = await getClient();
   try {
-    await client.query('BEGIN');
-
     const { id } = req.params;
     const userId = req.user.id;
 
-    const choreResult = await client.query('SELECT * FROM chores WHERE id = $1', [id]);
-    if (choreResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ success: false, error: 'Chore not found' });
+    let updatedChore;
+    let nextUserId;
+    let choreHouseId;
+    let choreTitle;
+    let notFound = false;
+
+    const client = await getClient();
+    try {
+      await client.query('BEGIN');
+
+      const choreResult = await client.query('SELECT * FROM chores WHERE id = $1', [id]);
+      if (choreResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        notFound = true;
+      } else {
+        const chore = choreResult.rows[0];
+        choreHouseId = chore.house_id;
+        choreTitle   = chore.title;
+
+        await client.query(
+          `UPDATE chores SET is_completed = true, completed_at = NOW() WHERE id = $1`,
+          [id]
+        );
+        await client.query(
+          `INSERT INTO chore_history (chore_id, completed_by, completed_at) VALUES ($1, $2, NOW())`,
+          [id, userId]
+        );
+
+        const membersResult = await client.query(
+          `SELECT user_id FROM house_members WHERE house_id = $1 ORDER BY joined_at ASC`,
+          [chore.house_id]
+        );
+        const members    = membersResult.rows.map((m) => m.user_id);
+        const currentIdx = members.indexOf(chore.assigned_to || userId);
+        const nextIdx    = (currentIdx + 1) % members.length;
+        nextUserId       = members[nextIdx];
+
+        const nextDueDate = calculateNextDueDate(chore.frequency);
+        const updatedResult = await client.query(
+          `UPDATE chores SET is_completed = false, completed_at = NULL, assigned_to = $1, due_date = $2
+           WHERE id = $3 RETURNING *`,
+          [nextUserId, nextDueDate, id]
+        );
+        updatedChore = updatedResult.rows[0];
+        await client.query('COMMIT');
+      }
+    } catch (err) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+      throw err;
+    } finally {
+      client.release(); // Always release before post-commit work
     }
 
-    const chore = choreResult.rows[0];
+    if (notFound) return res.status(404).json({ success: false, error: 'Chore not found' });
 
-    // Mark chore as completed
-    await client.query(
-      `UPDATE chores SET is_completed = true, completed_at = NOW() WHERE id = $1`,
-      [id]
-    );
-
-    // Record in history
-    await client.query(
-      `INSERT INTO chore_history (chore_id, completed_by, completed_at)
-       VALUES ($1, $2, NOW())`,
-      [id, userId]
-    );
-
-    // Round-robin: assign to next house member
-    const membersResult = await client.query(
-      `SELECT user_id FROM house_members WHERE house_id = $1 ORDER BY joined_at ASC`,
-      [chore.house_id]
-    );
-
-    const members    = membersResult.rows.map((m) => m.user_id);
-    const currentIdx = members.indexOf(chore.assigned_to || userId);
-    const nextIdx    = (currentIdx + 1) % members.length;
-    const nextUserId = members[nextIdx];
-
-    // Calculate next due date
-    const nextDueDate = calculateNextDueDate(chore.frequency);
-
-    const updatedResult = await client.query(
-      `UPDATE chores
-       SET is_completed = false, completed_at = NULL, assigned_to = $1, due_date = $2
-       WHERE id = $3
-       RETURNING *`,
-      [nextUserId, nextDueDate, id]
-    );
-
-    await client.query('COMMIT');
-
-    const updatedChore = updatedResult.rows[0];
-
-    // Notify next assignee
-    await notifyUser(
-      nextUserId,
-      'chore_assigned',
-      `You're next for the chore: "${chore.title}"`
-    );
-
-    socketService.emitToHouse(chore.house_id, 'chore:updated', updatedChore);
-
+    // Post-commit: client already released
+    await notifyUser(nextUserId, 'chore_assigned', `You're next for the chore: "${choreTitle}"`);
+    socketService.emitToHouse(choreHouseId, 'chore:updated', updatedChore);
     res.json({ chore: updatedChore });
   } catch (err) {
-    await client.query('ROLLBACK');
     next(err);
-  } finally {
-    client.release();
   }
 };
 

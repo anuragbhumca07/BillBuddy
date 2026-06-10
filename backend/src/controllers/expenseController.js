@@ -70,92 +70,80 @@ const listExpenses = async (req, res, next) => {
 // POST /houses/:id/expenses
 // ─────────────────────────────────────────────────────────────────────────────
 const createExpense = async (req, res, next) => {
-  const client = await getClient();
   try {
-    await client.query('BEGIN');
-
     const houseId = req.params.id;
     const paidBy  = req.user.id;
     const { title, amount, category, date, splits } = req.body;
-
-    // Handle receipt upload
     const receiptUrl = getFileUrl(req);
 
-    const expenseResult = await client.query(
-      `INSERT INTO expenses (id, house_id, paid_by, title, amount, category, receipt_url, date, created_at)
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, NOW())
-       RETURNING *`,
-      [houseId, paidBy, title.trim(), parseFloat(amount), category || null, receiptUrl, date || new Date()]
-    );
+    let expense;
+    let splitMismatch = null;
+    const client = await getClient();
+    try {
+      await client.query('BEGIN');
 
-    const expense = expenseResult.rows[0];
+      const expenseResult = await client.query(
+        `INSERT INTO expenses (id, house_id, paid_by, title, amount, category, receipt_url, date, created_at)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, NOW())
+         RETURNING *`,
+        [houseId, paidBy, title.trim(), parseFloat(amount), category || null, receiptUrl, date || new Date()]
+      );
+      expense = expenseResult.rows[0];
 
-    // Determine splits
-    let splitEntries = [];
-
-    if (splits && Array.isArray(splits) && splits.length > 0) {
-      // Custom splits provided
-      const totalSplit = splits.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
-      const rounded = Math.round(totalSplit * 100) / 100;
-      const expenseAmount = Math.round(parseFloat(amount) * 100) / 100;
-
-      if (Math.abs(rounded - expenseAmount) > 0.01) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({
-          success: false,
-          error: `Custom splits sum (${rounded}) does not match expense amount (${expenseAmount})`,
-        });
+      let splitEntries = [];
+      if (splits && Array.isArray(splits) && splits.length > 0) {
+        const totalSplit   = splits.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
+        const rounded      = Math.round(totalSplit * 100) / 100;
+        const expenseAmount = Math.round(parseFloat(amount) * 100) / 100;
+        if (Math.abs(rounded - expenseAmount) > 0.01) {
+          await client.query('ROLLBACK');
+          splitMismatch = `Custom splits sum (${rounded}) does not match expense amount (${expenseAmount})`;
+        } else {
+          splitEntries = splits.map((s) => ({ user_id: s.user_id, amount_owed: parseFloat(s.amount) }));
+        }
+      } else {
+        const membersResult = await client.query(
+          'SELECT user_id FROM house_members WHERE house_id = $1',
+          [houseId]
+        );
+        const memberCount = membersResult.rows.length;
+        const splitAmount = Math.round((parseFloat(amount) / memberCount) * 100) / 100;
+        splitEntries = membersResult.rows.map((m) => ({ user_id: m.user_id, amount_owed: splitAmount }));
       }
-      splitEntries = splits.map((s) => ({
-        user_id:     s.user_id,
-        amount_owed: parseFloat(s.amount),
-      }));
-    } else {
-      // Equal split among all house members
-      const membersResult = await client.query(
-        'SELECT user_id FROM house_members WHERE house_id = $1',
-        [houseId]
-      );
-      const memberCount   = membersResult.rows.length;
-      const splitAmount   = Math.round((parseFloat(amount) / memberCount) * 100) / 100;
 
-      splitEntries = membersResult.rows.map((m) => ({
-        user_id:     m.user_id,
-        amount_owed: splitAmount,
-      }));
+      if (!splitMismatch) {
+        for (const split of splitEntries) {
+          await client.query(
+            `INSERT INTO expense_splits (expense_id, user_id, amount_owed, is_settled)
+             VALUES ($1, $2, $3, false)`,
+            [expense.id, split.user_id, split.amount_owed]
+          );
+        }
+        await client.query('COMMIT');
+      }
+    } catch (err) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+      throw err;
+    } finally {
+      client.release(); // Always release before post-commit work
     }
 
-    // Insert splits
-    for (const split of splitEntries) {
-      await client.query(
-        `INSERT INTO expense_splits (expense_id, user_id, amount_owed, is_settled)
-         VALUES ($1, $2, $3, false)`,
-        [expense.id, split.user_id, split.amount_owed]
-      );
+    if (splitMismatch) {
+      return res.status(400).json({ success: false, error: splitMismatch });
     }
 
-    await client.query('COMMIT');
-
-    // Fetch full expense with splits
+    // Post-commit: client already released
     const fullExpense = await getExpenseWithSplits(expense.id);
-
-    // Notify house members
     await notifyHouseMembers(
       houseId,
       'expense_added',
       `${req.user.name} added expense "${title}" — $${parseFloat(amount).toFixed(2)}`,
       paidBy
     );
-
-    // Emit Socket.io event
     socketService.emitToHouse(houseId, 'expense:new', fullExpense);
-
     res.status(201).json({ expense: { ...fullExpense, splits: undefined }, splits: fullExpense.splits });
   } catch (err) {
-    await client.query('ROLLBACK');
     next(err);
-  } finally {
-    client.release();
   }
 };
 
