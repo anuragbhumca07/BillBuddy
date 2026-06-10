@@ -32,7 +32,12 @@ export const addExpense = createAsyncThunk(
       const data = await expenseService.createExpense(expenseData);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || error.response?.data?.error || 'Failed to add expense');
+      return rejectWithValue(
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        'Failed to add expense'
+      );
     }
   }
 );

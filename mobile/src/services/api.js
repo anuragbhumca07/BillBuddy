@@ -43,7 +43,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // ── Fallback to mock data on network errors ────────────────────────────
-    if (isNetworkError(error) && !originalRequest._mockRetried) {
+    if (isNetworkError(error) && originalRequest && !originalRequest._mockRetried) {
       originalRequest._mockRetried = true;
       try {
         const mockResponse = handleMockRequest(originalRequest);

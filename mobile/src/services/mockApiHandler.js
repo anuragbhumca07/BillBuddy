@@ -54,7 +54,16 @@ export function handleMockRequest(config) {
   const method = config.method?.toLowerCase() || 'get';
   // Strip base URL to get path
   const url = config.url?.replace(/^https?:\/\/[^/]+/, '') || '';
-  const body = config.data ? (typeof config.data === 'string' ? JSON.parse(config.data) : config.data) : {};
+  let body = {};
+  try {
+    body = config.data
+      ? (typeof config.data === 'string' ? JSON.parse(config.data) : config.data)
+      : {};
+    // FormData can't be accessed like a plain object — treat as empty
+    if (typeof body?.get === 'function') body = {};
+  } catch {
+    body = {};
+  }
 
   // ── Auth ───────────────────────────────────────────────────────────────────
   if (method === 'post' && url === '/auth/login') {
@@ -234,18 +243,17 @@ export function handleMockRequest(config) {
 
 // ── Detect if a request should fall through to mock data ────────────────────
 export function isNetworkError(error) {
-  if (!error.response && error.request) return true; // No response = network error
-  if (error.code === 'ECONNREFUSED') return true;
-  if (error.code === 'ENOTFOUND') return true;
-  if (error.message?.includes('Network Error')) return true;
-  if (error.message?.includes('timeout')) return true;
+  // Any error with no server response is a network/connectivity failure.
+  // This covers: ECONNREFUSED, ENOTFOUND, Android cleartext blocks,
+  // React Native "Network request failed", axios timeouts, etc.
+  if (!error.response) return true;
   // Also mock when the response looks like it's from the wrong server:
   // 404 = endpoint doesn't exist on whatever is running on that port
   // 5xx = server error from wrong backend
-  if (error.response?.status === 404) return true;
-  if (error.response?.status >= 500) return true;
+  if (error.response.status === 404) return true;
+  if (error.response.status >= 500) return true;
   // HTML response = wrong server (our API always returns JSON)
-  const ct = error.response?.headers?.['content-type'] || '';
+  const ct = error.response.headers?.['content-type'] || '';
   if (ct.includes('text/html')) return true;
   return false;
 }
