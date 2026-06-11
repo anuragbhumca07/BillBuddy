@@ -28,6 +28,10 @@ api.interceptors.request.use(
 let isRefreshing = false;
 let failedQueue = [];
 
+// WeakSets avoid mutating error.config, which is non-extensible in Hermes
+const _mockRetried = new WeakSet();
+const _tokenRetried = new WeakSet();
+
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
     if (error) prom.reject(error);
@@ -43,8 +47,8 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // ── Fallback to mock data on network errors ────────────────────────────
-    if (isNetworkError(error) && originalRequest && !originalRequest._mockRetried) {
-      originalRequest._mockRetried = true;
+    if (isNetworkError(error) && originalRequest && !_mockRetried.has(originalRequest)) {
+      _mockRetried.add(originalRequest);
       try {
         const mockResponse = handleMockRequest(originalRequest);
         return Promise.resolve(mockResponse);
@@ -54,7 +58,7 @@ api.interceptors.response.use(
     }
 
     // ── 401: try token refresh ─────────────────────────────────────────────
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && originalRequest && !_tokenRetried.has(originalRequest)) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -66,7 +70,7 @@ api.interceptors.response.use(
           .catch((err) => Promise.reject(err));
       }
 
-      originalRequest._retry = true;
+      _tokenRetried.add(originalRequest);
       isRefreshing = true;
 
       try {

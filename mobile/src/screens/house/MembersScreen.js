@@ -54,11 +54,15 @@ const MembersScreen = ({ navigation }) => {
   // ── Members: fall back to house.members, sorted by outstanding balance ───────
   const rawMembers = reduxMembers.length > 0 ? reduxMembers : (house?.members || []);
   const members = [...rawMembers].sort((a, b) => {
-    const aId = a.user?.id || a.id;
-    const bId = b.user?.id || b.id;
-    const aNet = Math.abs(getMemberBalance(aId));
-    const bNet = Math.abs(getMemberBalance(bId));
-    return bNet - aNet;
+    try {
+      const aId = a.user?.id || a.id;
+      const bId = b.user?.id || b.id;
+      const aNet = Math.abs(getMemberBalance(aId) || 0);
+      const bNet = Math.abs(getMemberBalance(bId) || 0);
+      return bNet - aNet;
+    } catch {
+      return 0;
+    }
   });
 
   const isAdmin = members.find(
@@ -79,15 +83,20 @@ const MembersScreen = ({ navigation }) => {
 
   // Compute per-member net balance with current user
   const getMemberBalance = (memberId) => {
-    if (!balances?.debts || !user?.id) return 0;
-    let net = 0;
-    balances.debts.forEach(d => {
-      const fromId = d.from?.id || d.from;
-      const toId = d.to?.id || d.to;
-      if (fromId === user.id && toId === memberId) net -= d.amount;
-      if (toId === user.id && fromId === memberId) net += d.amount;
-    });
-    return net;
+    try {
+      const debts = Array.isArray(balances?.debts) ? balances.debts : [];
+      if (!debts.length || !user?.id) return 0;
+      let net = 0;
+      debts.forEach(d => {
+        const fromId = d.from?.id || d.from;
+        const toId = d.to?.id || d.to;
+        if (fromId === user.id && toId === memberId) net -= (d.amount || 0);
+        if (toId === user.id && fromId === memberId) net += (d.amount || 0);
+      });
+      return net;
+    } catch {
+      return 0;
+    }
   };
 
   // ── Invite ────────────────────────────────────────────────────────────────
@@ -285,6 +294,13 @@ const MembersScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           ListHeaderComponent={<Text style={styles.listHeader}>{members.length} Members</Text>}
+          ListEmptyComponent={
+            <View style={styles.emptyGroups}>
+              <Ionicons name="people-outline" size={40} color={colors.border} />
+              <Text style={styles.emptyTitle}>No members yet</Text>
+              <Text style={styles.emptyText}>Pull down to refresh, or invite people using the code above.</Text>
+            </View>
+          }
           contentContainerStyle={styles.listContent}
         />
       ) : (
