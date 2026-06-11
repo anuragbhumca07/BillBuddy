@@ -37,7 +37,7 @@ const MembersScreen = ({ navigation }) => {
   const balances = useSelector(selectBalances);
   const [refreshing, setRefreshing] = useState(false);
   const [groups, setGroups]         = useState([..._groups]);
-  const [activeTab, setActiveTab]   = useState('Members');
+  const [activeTab, setActiveTab]   = useState('Friends');
 
   // ── Add Member modal ──────────────────────────────────────────────────────
   const [showInvite, setShowInvite]   = useState(false);
@@ -103,7 +103,7 @@ const MembersScreen = ({ navigation }) => {
   const handleShareInvite = async () => {
     const code = house?.invite_code || house?.inviteCode || 'DREAM42';
     try {
-      await Share.share({ message: `Join my BillBuddy household "${house?.name || 'The Dream Team'}"! Invite code: ${code}` });
+      await Share.share({ message: `Join my BillBuddy group "${house?.name || 'The Dream Team'}"! Invite code: ${code}` });
     } catch {}
   };
 
@@ -125,7 +125,7 @@ const MembersScreen = ({ navigation }) => {
   // ── Remove ────────────────────────────────────────────────────────────────
   const handleRemove = (member) => {
     const mu = member.user || member;
-    Alert.alert('Remove Member', `Remove ${mu?.name} from the household?`, [
+    Alert.alert('Remove Friend', `Remove ${mu?.name} from the group?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => dispatch(removeMember(mu?.id || member.id)) },
     ]);
@@ -236,7 +236,7 @@ const MembersScreen = ({ navigation }) => {
     );
   };
 
-  if (loading && members.length === 0) return <LoadingSpinner fullScreen message="Loading members…" />;
+  if (loading && members.length === 0) return <LoadingSpinner fullScreen message="Loading friends…" />;
 
   const inviteCode = house?.invite_code || house?.inviteCode || 'DREAM42';
 
@@ -249,7 +249,7 @@ const MembersScreen = ({ navigation }) => {
             <View style={styles.houseIcon}><Ionicons name="home" size={22} color="#fff" /></View>
             <View style={styles.houseInfo}>
               <Text style={styles.houseName}>{house.name}</Text>
-              <Text style={styles.houseCount}>{members.length} member{members.length !== 1 ? 's' : ''}</Text>
+              <Text style={styles.houseCount}>{members.length} friend{members.length !== 1 ? 's' : ''}</Text>
             </View>
           </View>
           {/* Invite Code Row */}
@@ -276,9 +276,9 @@ const MembersScreen = ({ navigation }) => {
 
       {/* ── Tabs ───────────────────────────────────────────────────────── */}
       <View style={styles.tabBar}>
-        {['Members', 'Groups'].map(tab => (
+        {['Friends', 'Groups'].map(tab => (
           <TouchableOpacity key={tab} style={[styles.tab, activeTab === tab && styles.tabActive]} onPress={() => setActiveTab(tab)}>
-            <Ionicons name={tab === 'Members' ? 'people-outline' : 'layers-outline'} size={16}
+            <Ionicons name={tab === 'Friends' ? 'people-outline' : 'layers-outline'} size={16}
               color={activeTab === tab ? colors.primary : colors.textSecondary} />
             <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
           </TouchableOpacity>
@@ -286,18 +286,18 @@ const MembersScreen = ({ navigation }) => {
       </View>
 
       {/* ── Content ────────────────────────────────────────────────────── */}
-      {activeTab === 'Members' ? (
+      {activeTab === 'Friends' ? (
         <FlatList
           data={members}
           keyExtractor={(item, i) => item.id || item.user?.id || String(i)}
           renderItem={renderMember}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-          ListHeaderComponent={<Text style={styles.listHeader}>{members.length} Members</Text>}
+          ListHeaderComponent={<Text style={styles.listHeader}>{members.length} Friends</Text>}
           ListEmptyComponent={
             <View style={styles.emptyGroups}>
               <Ionicons name="people-outline" size={40} color={colors.border} />
-              <Text style={styles.emptyTitle}>No members yet</Text>
+              <Text style={styles.emptyTitle}>No friends yet</Text>
               <Text style={styles.emptyText}>Pull down to refresh, or invite people using the code above.</Text>
             </View>
           }
@@ -337,7 +337,7 @@ const MembersScreen = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Invite Member</Text>
+              <Text style={styles.modalTitle}>Invite Friend</Text>
               <TouchableOpacity onPress={() => setShowInvite(false)}><Ionicons name="close" size={24} color={colors.text} /></TouchableOpacity>
             </View>
             <Text style={styles.modalSubtitle}>Send an invite link to their email</Text>

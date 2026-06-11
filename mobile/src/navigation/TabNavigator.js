@@ -7,7 +7,7 @@ import { selectUnreadCount } from '../store/slices/notificationSlice';
 import DashboardScreen from '../screens/DashboardScreen';
 import ExpenseListScreen from '../screens/expenses/ExpenseListScreen';
 import ChoreListScreen from '../screens/chores/ChoreListScreen';
-import AnnouncementsScreen from '../screens/announcements/AnnouncementsScreen';
+import ActivityScreen from '../screens/activity/ActivityScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import { colors } from '../utils/theme';
 
@@ -39,7 +39,7 @@ const TabNavigator = () => {
             Dashboard: focused ? 'home' : 'home-outline',
             Expenses: focused ? 'receipt' : 'receipt-outline',
             Chores: focused ? 'checkmark-circle' : 'checkmark-circle-outline',
-            Announcements: focused ? 'megaphone' : 'megaphone-outline',
+            Activity: focused ? 'time' : 'time-outline',
             Profile: focused ? 'person' : 'person-outline',
           };
           const iconName = icons[route.name] || 'ellipse-outline';
@@ -63,9 +63,9 @@ const TabNavigator = () => {
         options={{ tabBarLabel: 'Chores' }}
       />
       <Tab.Screen
-        name="Announcements"
-        component={AnnouncementsScreen}
-        options={{ tabBarLabel: 'Updates' }}
+        name="Activity"
+        component={ActivityScreen}
+        options={{ tabBarLabel: 'Activity' }}
       />
       <Tab.Screen
         name="Profile"

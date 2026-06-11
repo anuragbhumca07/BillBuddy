@@ -190,7 +190,7 @@ const AddExpenseScreen = ({ navigation }) => {
           {errors.members && <Text style={styles.err}>{errors.members}</Text>}
 
           {allParticipants.length === 0 && (
-            <Text style={styles.noMembersText}>No household members found. Add a person to split with.</Text>
+            <Text style={styles.noMembersText}>No friends found. Add a person to split with.</Text>
           )}
 
           {allParticipants.map(member => {
@@ -246,7 +246,7 @@ const AddExpenseScreen = ({ navigation }) => {
                 <Ionicons name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.modalSubtitle}>Add someone who isn't in your household</Text>
+            <Text style={styles.modalSubtitle}>Add someone to split with</Text>
             <RNTextInput style={styles.modalInput} placeholder="Full name *" value={newPersonName}
               onChangeText={setNewPersonName} placeholderTextColor={colors.textSecondary} autoFocus />
             <RNTextInput style={styles.modalInput} placeholder="Email (optional)" value={newPersonEmail}

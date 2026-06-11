@@ -13,6 +13,7 @@ import {
   DEMO_RULES,
   DEMO_NOTIFICATIONS,
   DEMO_CHORE_HISTORY,
+  DEMO_ACTIVITIES,
 } from './mockData';
 
 // ── In-memory mutable state ──────────────────────────────────────────────────
@@ -25,6 +26,7 @@ let _announcements = JSON.parse(JSON.stringify(DEMO_ANNOUNCEMENTS));
 let _rules = JSON.parse(JSON.stringify(DEMO_RULES));
 let _notifications = JSON.parse(JSON.stringify(DEMO_NOTIFICATIONS));
 let _history = JSON.parse(JSON.stringify(DEMO_CHORE_HISTORY));
+let _activities = JSON.parse(JSON.stringify(DEMO_ACTIVITIES));
 let _expenseHistory = [
   { id: 'ehist-1', expenseId: 'exp-1', action: 'created', changedBy: DEMO_USER, timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), note: 'Expense created' },
   { id: 'ehist-2', expenseId: 'exp-2', action: 'created', changedBy: DEMO_USER, timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), note: 'Expense created' },
@@ -155,6 +157,7 @@ export function handleMockRequest(config) {
     };
     _expenses.unshift(newExp);
     _expenseHistory.unshift({ id: nextId('ehist'), expenseId: newExp.id, action: 'created', changedBy: _user, timestamp: new Date().toISOString(), note: 'Expense created' });
+    _activities.unshift({ id: nextId('act'), type: 'expense', icon: 'receipt-outline', title: 'Expense added', description: `${_user.name} added "${newExp.title}" — $${parseFloat(newExp.amount).toFixed(2)}`, user: _user, timestamp: new Date().toISOString() });
     return created({ expense: newExp });
   }
   if (method === 'put' && /^\/expenses\/[^/]+$/.test(url)) {
@@ -200,7 +203,9 @@ export function handleMockRequest(config) {
       recurring: body.frequency || body.recurring || 'none', house_id: 'house-1',
       createdAt: new Date().toISOString(),
     };
-    _chores.unshift(newChore); return created(newChore);
+    _chores.unshift(newChore);
+    _activities.unshift({ id: nextId('act'), type: 'chore', icon: 'add-circle-outline', title: 'Chore added', description: `${_user.name} added chore "${newChore.title}"`, user: _user, timestamp: new Date().toISOString() });
+    return created(newChore);
   }
   if (method === 'put' && /^\/chores\/[^/]+$/.test(url)) {
     const id = url.split('/').pop(); const idx = _chores.findIndex(c => c.id === id);
@@ -216,6 +221,7 @@ export function handleMockRequest(config) {
     const id = url.split('/')[2]; const idx = _chores.findIndex(c => c.id === id);
     if (idx !== -1) { _chores[idx] = { ..._chores[idx], completed: true, completedAt: new Date().toISOString() }; }
     _history.unshift({ id: nextId('hist'), choreId: id, title: _chores[idx]?.title, completedBy: _user, completedAt: new Date().toISOString() });
+    _activities.unshift({ id: nextId('act'), type: 'chore', icon: 'checkmark-circle-outline', title: 'Chore completed', description: `${_user.name} completed "${_chores[idx]?.title}"`, user: _user, timestamp: new Date().toISOString() });
     return ok(_chores[idx]);
   }
 
@@ -228,6 +234,9 @@ export function handleMockRequest(config) {
   if (method === 'delete' && /^\/announcements\//.test(url)) {
     const id = url.split('/').pop(); _announcements = _announcements.filter(a => a.id !== id); return ok({ success: true });
   }
+
+  // ── Activity ───────────────────────────────────────────────────────────────
+  if (method === 'get' && url === '/activity') return ok({ activities: _activities });
 
   // ── Notifications ──────────────────────────────────────────────────────────
   if (method === 'get' && url === '/notifications') return ok({ notifications: _notifications });

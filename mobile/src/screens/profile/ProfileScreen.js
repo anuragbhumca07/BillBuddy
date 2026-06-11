@@ -118,13 +118,11 @@ const ProfileScreen = ({ navigation }) => {
 
   const menuItems = [
     {
-      section: 'Household',
+      section: 'Friends & Groups',
       items: [
-        { icon: 'people-outline', label: 'Members & Groups', onPress: () => navigation.navigate('Members') },
+        { icon: 'people-outline', label: 'Friends & Groups', onPress: () => navigation.navigate('Members') },
         { icon: 'chatbubbles-outline', label: 'Group Chat', onPress: () => navigation.navigate('GroupChat') },
         { icon: 'document-text-outline', label: 'House Rules', onPress: () => navigation.navigate('HouseRules') },
-        { icon: 'home-plus-outline', label: 'Create Household', onPress: () => navigation.navigate('CreateHouse') },
-        { icon: 'login-outline', label: 'Join Household', onPress: () => navigation.navigate('JoinHouse') },
       ],
     },
     {
@@ -169,7 +167,7 @@ const ProfileScreen = ({ navigation }) => {
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <Ionicons name="people-outline" size={20} color={colors.secondary} />
-          <Text style={styles.statLabel}>Roommates</Text>
+          <Text style={styles.statLabel}>Friends</Text>
         </View>
       </View>
 

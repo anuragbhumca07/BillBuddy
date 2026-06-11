@@ -53,9 +53,9 @@ const HouseNavigator = () => (
     <Stack.Screen name="ChoreHistory"     component={ChoreHistoryScreen}    options={{ title: 'Chore History' }} />
     <Stack.Screen name="AddAnnouncement"  component={AddAnnouncementScreen} options={{ title: 'New Announcement' }} />
     <Stack.Screen name="HouseRules"       component={HouseRulesScreen}      options={{ title: 'House Rules' }} />
-    <Stack.Screen name="Members"          component={MembersScreen}         options={{ title: 'Members & Groups' }} />
-    <Stack.Screen name="CreateHouse"      component={CreateHouseScreen}     options={{ title: 'Create Household' }} />
-    <Stack.Screen name="JoinHouse"        component={JoinHouseScreen}       options={{ title: 'Join Household' }} />
+    <Stack.Screen name="Members"          component={MembersScreen}         options={{ title: 'Friends & Groups' }} />
+    <Stack.Screen name="CreateHouse"      component={CreateHouseScreen}     options={{ title: 'Create Group' }} />
+    <Stack.Screen name="JoinHouse"        component={JoinHouseScreen}       options={{ title: 'Join Group' }} />
     <Stack.Screen name="Notifications"    component={NotificationsScreen}   options={{ headerShown: false }} />
     <Stack.Screen name="GroupChat"        component={GroupChatScreen}       options={{ headerShown: false }} />
     <Stack.Screen name="DirectMessage"    component={DirectMessageScreen}   options={{ headerShown: false }} />

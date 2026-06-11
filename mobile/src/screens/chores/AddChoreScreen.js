@@ -166,7 +166,7 @@ const AddChoreScreen = ({ navigation }) => {
           {errors.assignedTo && <Text style={styles.err}>{errors.assignedTo}</Text>}
 
           {allParticipants.length === 0 && (
-            <Text style={styles.noMembersText}>No household members found. Add a person above.</Text>
+            <Text style={styles.noMembersText}>No friends found. Add a person above.</Text>
           )}
 
           <View style={styles.membersGrid}>

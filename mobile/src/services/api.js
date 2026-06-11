@@ -3,6 +3,7 @@ import { storage } from '../utils/storage';
 import { handleMockRequest, isNetworkError } from './mockApiHandler';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3000';
+const IS_DEMO_MODE = !process.env.EXPO_PUBLIC_API_URL;
 
 const api = axios.create({
   baseURL: API_URL,
@@ -11,6 +12,26 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// ── In demo mode: bypass the network entirely, always use mock data ──────────
+if (IS_DEMO_MODE) {
+  api.defaults.adapter = (config) =>
+    new Promise((resolve, reject) => {
+      try {
+        const mockRes = handleMockRequest(config);
+        resolve({
+          data: mockRes.data,
+          status: mockRes.status || 200,
+          statusText: 'OK',
+          headers: { 'content-type': 'application/json' },
+          config,
+          request: {},
+        });
+      } catch (err) {
+        reject(err);
+      }
+    });
+}
 
 // ── Request interceptor: attach access token ─────────────────────────────────
 api.interceptors.request.use(
@@ -58,7 +79,7 @@ api.interceptors.response.use(
     }
 
     // ── 401: try token refresh ─────────────────────────────────────────────
-    if (error.response?.status === 401 && originalRequest && !_tokenRetried.has(originalRequest)) {
+    if (error.response?.status === 401 && originalRequest && !_tokenRetried.has(originalRequest) && !originalRequest.url?.includes('/auth/')) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
