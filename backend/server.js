@@ -29,6 +29,7 @@ const notificationRoutes  = require('./src/routes/notifications');
 const app    = express();
 const server = http.createServer(app);
 
+app.set('trust proxy', 1); // Railway sits behind a load balancer
 app.use(helmet());
 app.use(
   cors({
