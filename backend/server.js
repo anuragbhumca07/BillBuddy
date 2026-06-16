@@ -103,6 +103,27 @@ app.use('/rules', ruleRoutes);
 
 // /houses/members and /houses/rules convenience routes are handled inside houseRoutes.
 
+// ─── /api/* mirror routes (used by the web frontend in production) ───────────
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/houses', houseRoutes);
+app.use('/api/houses/:id/expenses', expenseRoutes);
+app.use('/api/houses/:id/chores', choreRoutes);
+app.use('/api/houses/:id/announcements', announcementRoutes);
+app.use('/api/houses/:id/rules', ruleRoutes);
+app.use('/api/expenses', authenticate, withUserHouse, expenseRoutes);
+app.use('/api/chores', authenticate, withUserHouse, choreRoutes);
+app.use('/api/announcements', authenticate, withUserHouse, announcementRoutes);
+app.use('/api/rules', ruleRoutes);
+
+// ─── Serve web SPA in production ─────────────────────────────────────────────
+const webDist = path.join(__dirname, '../web/dist');
+if (require('fs').existsSync(webDist)) {
+  app.use(express.static(webDist));
+  app.get('*', (req, res) => res.sendFile(path.join(webDist, 'index.html')));
+}
+
 // ─── 404 + Error handlers ─────────────────────────────────────────────────────
 app.use(notFoundHandler);
 app.use(errorHandler);
