@@ -93,17 +93,6 @@ app.use('/houses/:id/announcements', announcementRoutes);
 // House-scoped rule routes
 app.use('/houses/:id/rules', ruleRoutes);
 
-// ─── Standalone routes (entity-id only, e.g. GET /expenses/:expenseId) ──────
-// Also serve as user-context routes when mounted with withUserHouse:
-// the middleware injects req.params.id (houseId) so list/create/balance
-// endpoints work without explicit houseId in the URL (used by the mobile).
-app.use('/expenses', authenticate, withUserHouse, expenseRoutes);
-app.use('/chores', authenticate, withUserHouse, choreRoutes);
-app.use('/announcements', authenticate, withUserHouse, announcementRoutes);
-app.use('/rules', ruleRoutes);
-
-// /houses/members and /houses/rules convenience routes are handled inside houseRoutes.
-
 // ─── /api/* mirror routes (used by the web frontend in production) ───────────
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -119,11 +108,27 @@ app.use('/api/announcements', authenticate, withUserHouse, announcementRoutes);
 app.use('/api/rules', ruleRoutes);
 
 // ─── Serve web SPA in production ─────────────────────────────────────────────
+// Static files + HTML catch-all MUST come before the standalone mobile routes so
+// that browser navigation to /expenses, /chores, etc. returns index.html rather
+// than a JSON API response. Mobile app calls always carry Authorization headers
+// so they fall through the HTML check and reach the standalone routes below.
 const webDist = path.join(__dirname, '../web/dist');
 if (require('fs').existsSync(webDist)) {
   app.use(express.static(webDist));
-  app.get('*', (req, res) => res.sendFile(path.join(webDist, 'index.html')));
+  app.get('*', (req, res, next) => {
+    if (req.accepts('html')) {
+      return res.sendFile(path.join(webDist, 'index.html'));
+    }
+    next();
+  });
 }
+
+// ─── Standalone routes (entity-id only — used by mobile, no /api prefix) ────
+// Browser requests never reach here because the SPA catch-all above handles them.
+app.use('/expenses', authenticate, withUserHouse, expenseRoutes);
+app.use('/chores', authenticate, withUserHouse, choreRoutes);
+app.use('/announcements', authenticate, withUserHouse, announcementRoutes);
+app.use('/rules', ruleRoutes);
 
 // ─── 404 + Error handlers ─────────────────────────────────────────────────────
 app.use(notFoundHandler);
