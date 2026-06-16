@@ -52,7 +52,7 @@ const getMyHouse = async (req, res, next) => {
        LEFT JOIN house_members hm2 ON hm2.house_id = h.id
        LEFT JOIN users u ON u.id = h.created_by
        WHERE hm.user_id = $1
-       GROUP BY h.id, u.name, hm.role
+       GROUP BY h.id, u.name, hm.role, hm.joined_at
        ORDER BY hm.joined_at ASC
        LIMIT 1`,
       [userId]

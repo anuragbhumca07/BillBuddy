@@ -64,6 +64,7 @@ const withUserHouse = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'You are not a member of any house' });
     }
     req.params.id = result.rows[0].house_id;
+    req.houseId   = result.rows[0].house_id; // survives sub-router param merging
     next();
   } catch (err) {
     next(err);

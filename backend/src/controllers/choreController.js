@@ -7,7 +7,7 @@ const socketService = require('../services/socketService');
 // ─────────────────────────────────────────────────────────────────────────────
 const listChores = async (req, res, next) => {
   try {
-    const houseId = req.params.id;
+    const houseId = req.params.id || req.houseId;
     const { assigned_to, completed, upcoming, limit } = req.query;
 
     const conditions = ['c.house_id = $1'];
@@ -49,7 +49,7 @@ const listChores = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const createChore = async (req, res, next) => {
   try {
-    const houseId = req.params.id;
+    const houseId = req.params.id || req.houseId;
     const { title, description, frequency, assigned_to, due_date } = req.body;
 
     // Validate assigned_to is a house member if provided

@@ -49,7 +49,7 @@ const authenticate = async (req, res, next) => {
  */
 const requireHouseAdmin = async (req, res, next) => {
   try {
-    const houseId = req.params.id || req.params.houseId;
+    const houseId = req.params.id || req.params.houseId || req.houseId;
     const userId = req.user.id;
 
     const result = await query(
@@ -77,7 +77,7 @@ const requireHouseAdmin = async (req, res, next) => {
  */
 const requireHouseMember = async (req, res, next) => {
   try {
-    const houseId = req.params.id || req.params.houseId;
+    const houseId = req.params.id || req.params.houseId || req.houseId;
     const userId = req.user.id;
 
     const result = await query(

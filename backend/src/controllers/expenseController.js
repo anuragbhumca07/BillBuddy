@@ -9,7 +9,7 @@ const { getFileUrl } = require('../middleware/upload');
 // ─────────────────────────────────────────────────────────────────────────────
 const listExpenses = async (req, res, next) => {
   try {
-    const houseId = req.params.id;
+    const houseId = req.params.id || req.houseId;
     const { person, category, from, to, limit = 50, offset = 0 } = req.query;
 
     const conditions = ['e.house_id = $1'];
@@ -71,7 +71,7 @@ const listExpenses = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const createExpense = async (req, res, next) => {
   try {
-    const houseId = req.params.id;
+    const houseId = req.params.id || req.houseId;
     const paidBy  = req.user.id;
     const { title, amount, category, date, splits } = req.body;
     const receiptUrl = getFileUrl(req);
@@ -284,7 +284,7 @@ const settleExpense = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const getBalances = async (req, res, next) => {
   try {
-    const houseId = req.params.id;
+    const houseId = req.params.id || req.houseId;
 
     // Get all unsettled splits for this house
     const splitsResult = await query(
